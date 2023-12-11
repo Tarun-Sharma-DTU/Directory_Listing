@@ -8,13 +8,22 @@ services:
 
   web:
     build: .
-    command: gunicorn --bind 0.0.0.0:80 --timeout 120 directory_listing.wsgi:application
+    command: gunicorn --bind 0.0.0.0:8000 --timeout 120 directory_listing.wsgi:application
     volumes:
       - .:/app
-    ports:
-      - "80:80"
+      - static_volume:/app/staticfiles
     depends_on:
       - redis
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - static_volume:/app/staticfiles
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
 
   celery:
     build: .
@@ -24,3 +33,6 @@ services:
     depends_on:
       - web
       - redis
+
+volumes:
+  static_volume:
