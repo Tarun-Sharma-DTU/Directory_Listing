@@ -3,7 +3,7 @@
 {% block title %}Directory Listing Automation{% endblock %}
 
 {% block content %}
-    <form id="uploadForm" method="post" action="{% url 'index' %}" enctype="multipart/form-data" class="mb-4">
+    <form id="uploadForm" method="post" action="{% url 'home' %}" enctype="multipart/form-data" class="mb-4">
         {% csrf_token %}
         <div class="row g-3">
             <div class="col-md-3">

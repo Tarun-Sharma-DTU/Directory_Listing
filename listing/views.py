@@ -1,11 +1,32 @@
-from django.shortcuts import render
-from .tasks import create_company_profile_post, sample_task
+from django.shortcuts import render, redirect
+from .tasks import create_company_profile_post
 from django.shortcuts import render
 import openpyxl
 from .models import APIConfig
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 
 
-def index(request):
+
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            # Redirect to a success page.
+            return redirect('home')  # Replace 'home' with the name of your target page
+        else:
+            # Return an 'invalid login' error message.
+            messages.error(request, 'Invalid username or password.')
+    
+    return render(request, 'registration/login.html')  # Replace with your template name
+
+@login_required
+def home(request):
     if request.method == 'POST' and 'excel_file' in request.FILES:
         excel_file = request.FILES['excel_file']
         
