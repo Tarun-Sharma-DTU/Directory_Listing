@@ -18,5 +18,17 @@ COPY . /app/
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
 
+# Copy the entrypoint script into the container
+COPY entrypoint.sh /app/entrypoint.sh
+
+# Set the entrypoint script to be executable
+RUN chmod +x /app/entrypoint.sh
+
+# Set the entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+
 # Run the application
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+
