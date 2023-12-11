@@ -1,0 +1,22 @@
+{% extends "listing/base.html" %}
+
+{% block title %}Link Building Automation Dashboard - Site Data {% endblock %}
+
+{% block content %}
+
+
+<form id="site_data_Form" enctype="multipart/form-data" class="mb-4">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label for="site_excel_file" class="form-label">Upload your site data</label>
+            <input type="file" class="form-control" name="site_excel_file" id="site_excel_file">
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col">
+            <button type="submit" id="startProcess" class="btn btn-primary" style="background-color: #a453ca;">Upload Data</button>
+        </div>
+    </div>
+</form>
+
+{% endblock %} 

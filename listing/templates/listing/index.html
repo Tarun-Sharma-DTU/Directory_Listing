@@ -1,0 +1,36 @@
+{% extends "listing/base.html" %}
+
+{% block title %}Link Building Automation Dashboard{% endblock %}
+
+{% block content %}
+    <form id="uploadForm" method="post" action="{% url 'index' %}" enctype="multipart/form-data" class="mb-4">
+        {% csrf_token %}
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="excel_file" class="form-label">Select an Excel file</label>
+                <input type="file" class="form-control" name="excel_file" id="excel_file">
+            </div>
+            <div class="col-md-3">
+                <label for="site_number" class="form-label">Number Of Sites</label>
+                <input type="number" class="form-control" name="site_number" id="site_number" placeholder="Enter Site Number">
+            </div>
+            <div class="col-md-3">
+                <label for="html_template" class="form-label">HTML Template</label>
+                <select class="form-select" name="html_template" id="html_template">
+                    <option value="" disabled selected>Select HTML Template</option>
+                    <option value="template1">HTML Template 1</option>
+                    <option value="template2">HTML Template 2</option>
+                    <option value="template3">HTML Template 3</option>
+                </select>
+            </div>
+           
+        </div>
+        <div class="row mt-3">
+            <div class="col">
+                <button type="submit" id="startProcess" class="btn btn-primary" style="background-color: #a453ca;">Start Posting</button>
+            </div>
+        </div>
+    </form>
+
+{% endblock %} 
+    
