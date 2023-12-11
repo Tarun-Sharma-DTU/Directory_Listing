@@ -68,15 +68,17 @@ def create_company_profile_post(row_values, url, user, password, template):
             </div>
             <div class="map-container">
               <h2>Find Us On The Map</h2>
-              <iframe src="{google_map_src}" style="width: 100%; height: 350px;" allowfullscreen></iframe>
+              <iframe src="{google_map_src}" style="width: 100%; height: 500px;" allowfullscreen></iframe>
             </div>
           </div>
-
+         <div class="highlight">
+            <h2>Brands/Services Offered</h2>
+            <p>{services_offered}</p>
+          </div>
             {galleries}
-
           <div class="company-info">
             <h2>Watch Our Video</h2>
-            <iframe src="{youtube_video_url}" style="width: 100%; height: 350px;" allowfullscreen></iframe>
+            <iframe src="{youtube_video_url}" style="width: 65%; height: 400px;" allowfullscreen></iframe>
           </div>
 
           <div class="company-info">
@@ -89,10 +91,6 @@ def create_company_profile_post(row_values, url, user, password, template):
             </div>
           </div>
 
-          <div class="highlight">
-            <h2>Brands/Services Offered</h2>
-            <p>{services_offered}</p>
-          </div>
         </div><!-- /wp:html -->"""
     # Preparing the post data
     post = {
