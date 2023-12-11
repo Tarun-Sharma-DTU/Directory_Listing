@@ -4,11 +4,12 @@ services:
   redis:
     image: "redis:alpine"
     ports:
+      - "80:80"
       - "6379:6379"
 
   web:
     build: .
-    command: gunicorn --bind 0.0.0.0:8000 --timeout 120 directory_listing.wsgi:application
+    command: gunicorn --bind 0.0.0.0:80 --timeout 120 directory_listing.wsgi:application
     volumes:
       - .:/app
     ports:

@@ -29,6 +29,6 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 
 
 # Run the Gunicorn server
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "directory_listing.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:80", "directory_listing.wsgi:application"]
 
 
