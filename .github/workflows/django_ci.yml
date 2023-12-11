@@ -43,6 +43,6 @@ jobs:
         username: ${{ secrets.VPS_USERNAME }}
         password: ${{ secrets.VPS_PASSWORD }}
         script: |
-          cd /path/to/your/app
-          git pull
+          cd /var/www/directory_listing
+          git pull origin main
           sudo docker-compose up -d --build
