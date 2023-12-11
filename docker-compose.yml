@@ -8,8 +8,7 @@ services:
 
   web:
     build: .
-    entrypoint: /app/entrypoint.sh
-    command: python manage.py runserver 0.0.0.0:8000
+    command: gunicorn --bind 0.0.0.0:8000 --timeout 120 directory_listing.wsgi:application
     volumes:
       - .:/app
     ports:

@@ -1,4 +1,4 @@
-name: Django CI
+name: Django CI/CD
 
 on:
   push:
@@ -9,23 +9,34 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         python-version: [3.8, 3.9]
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run tests
+        run: python manage.py test
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
+  deploy:
+    needs: test  # This ensures that deployment runs only after tests pass
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'  # Deploy only for changes in the main branch
+    steps:
+      - name: Set up SSH connection
+        uses: webfactory/ssh-agent@v0.5.2
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Deploy to VPS
+        run: |
+            ssh -o StrictHostKeyChecking=no rohinroot@143.110.155.19 'bash -s' < ./deploy_script.sh
 
-    - name: Run tests
-      run: python manage.py test
