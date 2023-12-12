@@ -52,7 +52,9 @@ def home(request):
             print("Dispatching task for URL:", url)
             create_company_profile_post.delay(row_values, url, user, password, html_template)
 
-    # Always render the form page, whether it's a GET or a POST request
+        # Redirect to the home page (or any other page) to avoid form resubmission
+        return redirect('home')  
+    # If it's a GET request or any other method, render the form page
     return render(request, "listing/index.html")
 
 def site_data(request):
