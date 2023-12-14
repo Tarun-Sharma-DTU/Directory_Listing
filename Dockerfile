@@ -24,8 +24,9 @@ COPY entrypoint.sh /app/entrypoint.sh
 # Set the entrypoint script to be executable
 RUN chmod +x /app/entrypoint.sh
 
+
 # Set the entrypoint
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
 
 
 # Run the Gunicorn server
