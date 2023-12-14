@@ -9,7 +9,7 @@ def sample_task():
   return 1
 
 @shared_task
-def create_company_profile_post(row_values, url, user, password, template):
+def create_company_profile_post(row_values, json_url, user, password, html_template):
     credentials = user + ':' + password
     token = base64.b64encode(credentials.encode())
     header = {'Authorization': 'Basic ' + token.decode('utf-8')}
@@ -46,7 +46,7 @@ def create_company_profile_post(row_values, url, user, password, template):
           </div>"""
 
     # Constructing the HTML content
-    html1 = f"""<!-- wp:html --><div class="container">
+    html_1 = f"""<!-- wp:html --><div class="container">
           <div class="company-profile-header">
             <img src="{company_logo_url}" alt="Company Logo">
           </div>
@@ -92,19 +92,150 @@ def create_company_profile_post(row_values, url, user, password, template):
           </div>
 
         </div><!-- /wp:html -->"""
+    
+        
+    galleries_2 = ""
+    img_list = ""  # Initialize img_list here
+
+    if gallery_image_urls:
+        url_list = [url.strip() for url in gallery_image_urls.split(',')]
+        for i, url in enumerate(url_list, start=1):
+            img_list += f'<div class="gallery-item"><img src="{url}" alt="Gallery Image {i}"></div>\n'
+
+    galleries_2 = f'<section id="gallerySection" class="gallery-section"><h2 class="feature-title">Gallery</h2><div class="gallery-content">{img_list}</div></section>'
+
+   # Initialize an empty string to store the HTML code
+    social_media_buttons = ""
+
+    # Check if each URL has a value and generate the corresponding HTML
+    if linkedin_url:
+        social_media_buttons += f'''
+          <!-- LinkedIn -->
+          <a title="LinkedIn" class="button-social has-action" href="{linkedin_url}" target="_blank">
+            <i class="fa fa-linkedin" aria-hidden="true"></i>
+          </a>
+        '''
+
+    if facebook_url:
+        social_media_buttons += f'''
+          <!-- Facebook -->
+          <a title="Facebook" class="button-social has-action" href="{facebook_url}" target="_blank">
+            <i class="fa fa-facebook" aria-hidden="true"></i>
+          </a>
+        '''
+
+    if twitter_url:
+        social_media_buttons += f'''
+          <!-- Twitter -->
+          <a title="Twitter" class="button-social has-action" href="{twitter_url}" target="_blank">
+            <i class="fa fa-twitter" aria-hidden="true"></i>
+          </a>
+        '''
+
+    if youtube_url:
+        social_media_buttons += f'''
+          <!-- YouTube -->
+          <a title="YouTube" class="button-social has-action" href="{youtube_url}" target="_blank">
+            <i class="fa fa-youtube" aria-hidden="true"></i>
+          </a>
+        '''
+
+    # Check if any social media buttons were generated
+    if social_media_buttons:
+        # Create the enclosing <div> for the buttons
+        social_media_buttons = f'<section class="section-wrap" id="socialMediaSection"><h2 class="feature-title">Digital & Online Presence</h2><div class="social-presence"><ul><li class="social-action"><div class="btn-group">\n{social_media_buttons}\n</div></li></ul></div></section>'
+    
+    
+    html_2 = f"""<!-- wp:html --><div>
+        <section class="business-profile">
+          <div class="cover-logo-container">  
+          <div class="cover-photo">
+                <img src="{company_logo_url}" alt="Profile Cover">
+          </div>
+            <div class="business-logo">
+                <img src="{company_logo_url}" alt="Business Logo">
+            </div>
+          </div>
+            <div class="business-info">
+                <h2>{company_name} | Company Profile</h2> <!-- Company Name -->
+                <p>{target_location}</p> <!-- Target Location -->
+            </div>
+
+        </section>
+
+
+        <section class="navigation-menu">
+          <div class="menu-links">
+            <a href="#companyOverview" class="link-item active">About Company</a>
+            <a href="#gallerySection" class="link-item">Gallery</a>
+            <a href="#socialMediaLinks" class="link-item">Social Media</a>
+          </div>
+        </section>
+
+        <section id="companyOverview" class="profile-overview">
+
+          <div class="overview-content">
+            <h2 class="section-title">Business Overview</h2> <!-- Business Description -->
+            <div class="business-description">
+              <p>
+                {description}
+              </p>
+            </div>
+            <div class="services-offered">
+              <h3 class="services-title">Services offered</h3><!-- Services offered -->
+              <span>{services_offered}</span>
+            </div>
+
+            <div class="additional-info">
+              <div class="info-item">
+                <h3>Company Website</h3>
+                <p><a href="{company_website}">{company_website}</a></p> <!-- Company Website -->
+              </div>
+              <div class="info-item">
+                <h3>Company Phone Number</h3>
+                <p><a href="tel:{company_phone_number}">{company_phone_number}</a></p> <!-- Company Phone Number -->
+              </div>
+              <div class="info-item">
+                <h3>Company Email</h3>
+                <p><a href="mailto:{contact_email}">{contact_email}</a></p> <!-- Company Email -->
+              </div>
+              <div class="info-item">
+                <h3>Address</h3>
+                <p>{complete_address}</p> <!-- Company Website -->
+              </div>
+            </div>
+          </div>
+        </section>        
+          {galleries_2}        
+
+        <section id="gallerySection" class="gallery-section">
+          <h2 class="feature-title">Gallery</h2>
+          <div class="google-maps-embed">
+            <iframe class="google-map-iframe" src="{google_map_src}"></iframe>
+          </div>
+        </section>
+
+        {social_media_buttons} 
+              </div><!-- /wp:html -->"""     
+
+    if html_template == 1:
+        final_content = html_1
+    elif html_template == 2:
+        final_content = html_2
+        
+    print(json_url+'/posts')
     # Preparing the post data
     post = {
         'title': company_name,
         'slug': company_name,
         'status': 'draft',
-        'content': html1,
+        'content': final_content,
         # 'categories': 11,   # Uncomment and use as needed
         # 'featured_media': image_id  # Uncomment and use as needed
     }
 
     # Sending the POST request
-    try:
-        response = requests.post(url + '/posts', headers=header, json=post)
-        print(response)
-    except requests.RequestException as e:
-        print(f"Error during request: {e}")
+
+    response = requests.post(json_url + '/posts', headers=header, json=post)
+    print(response)
+

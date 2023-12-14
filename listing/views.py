@@ -40,7 +40,6 @@ def home(request):
 
         # Handle other form data
         site_number = request.POST.get('site_number', '')
-        html_template = request.POST.get('html_template', '')
 
         # Dispatch tasks for each API configuration
         api_configs = APIConfig.objects.all()
@@ -48,9 +47,14 @@ def home(request):
             url = api_config.url
             user = api_config.user
             password = api_config.password
+            html_template = api_config.template_no
+            if url.endswith('/'):
+                url = url[:-1]
+            json_url = url + "/wp-json/wp/v2"
+            print(json_url)
 
             print("Dispatching task for URL:", url)
-            create_company_profile_post.delay(row_values, url, user, password, html_template)
+            create_company_profile_post.delay(row_values, json_url, user, password, html_template)
 
         # Redirect to the home page (or any other page) to avoid form resubmission
         return redirect('home')  
