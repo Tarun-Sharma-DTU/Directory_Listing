@@ -44,6 +44,6 @@ jobs:
         password: ${{ secrets.VPS_PASSWORD }}
         script: |
           cd /var/www/directory_listing
-          git stash
-          git pull origin main
+          sudo git stash
+          sudo git pull origin main
           sudo docker-compose up -d --build
