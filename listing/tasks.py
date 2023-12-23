@@ -143,7 +143,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     # Check if any social media buttons were generated
     if social_media_buttons:
         # Create the enclosing <div> for the buttons
-        social_media_buttons = f'<section class="section-wrap" id="socialMediaSection"><h2 class="feature-title">Digital & Online Presence</h2><div class="social-presence"><ul><li class="social-action"><div class="btn-group">\n{social_media_buttons}\n</div></li></ul></div></section>'
+        social_media_buttons = f'<section class="section-wrap" id="socialMediaLinks"><h2 class="feature-title">Digital & Online Presence</h2><div class="social-presence"><ul><li class="social-action"><div class="btn-group">\n{social_media_buttons}\n</div></li></ul></div></section>'
     
     
     html_2 = f"""<!-- wp:html --><div>
@@ -175,7 +175,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         <section id="companyOverview" class="profile-overview">
 
           <div class="overview-content">
-            <h2 class="section-title">Business Overview</h2> <!-- Business Description -->
+            <h3 class="section-title">Business Overview</h3> <!-- Business Description -->
             <div class="business-description">
               <p>
                 {description}
@@ -209,7 +209,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
           {galleries_2}        
 
         <section id="gallerySection" class="gallery-section">
-          <h2 class="feature-title">Gallery</h2>
+          <h3 class="feature-title">Gallery</h3>
           <div class="google-maps-embed">
             <iframe class="google-map-iframe" src="{google_map_src}"></iframe>
           </div>
