@@ -228,14 +228,22 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
             </div>
           </div>
         </section>        
-          {galleries_2}        
+          {galleries_2}
 
-        <section id="mapsection" class="gallery-section">
+        <!-- YouTube Video Embed Section -->
+      <section id="youtubeVideoSection" class="youtube-video-section">
+          <h3 class="feature-title">Our YouTube Video</h3>
+          <div class="youtube-video-embed">
+              <iframe width="560" height="315" src="{youtube_video_url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+      </section>       
+
+      <section id="mapsection" class="map-location-section">
           <h3 class="feature-title">Find Us On Map</h3>
           <div class="google-maps-embed">
-            {google_map_src}
+              {google_map_src}
           </div>
-        </section>
+      </section>
 
         {social_media_buttons} 
               </div><!-- /wp:html -->"""     

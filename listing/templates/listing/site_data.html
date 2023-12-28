@@ -20,4 +20,60 @@
     </div>
 </form>
 
+<button id="viewData" class="btn btn-info">View All Site Records</button>
+
+<!-- Div to display data table -->
+<div id="dataDisplay"></div>
+
+
+
+<style>
+    #dataDisplay table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    #dataDisplay th, #dataDisplay td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+
+    #dataDisplay th {
+        background-color: #4CAF50;
+        color: white;
+        text-align: left;
+    }
+
+    #dataDisplay tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+
+    #dataDisplay tr:hover {
+        background-color: #ddd;
+    }
+</style>
+
+<script>
+    document.getElementById('viewData').addEventListener('click', function() {
+        fetch('/api-config-data/')
+            .then(response => response.json())
+            .then(data => {
+                let table = '<table>';
+                table += '<tr><th>SL No.</th><th>URL</th><th>Template No</th></tr>';
+                let slNo = 1; // Initialize serial number counter
+                data.forEach(item => {
+                    table += `<tr><td>${slNo++}</td><td>${item.url}</td><td>${item.template_no}</td></tr>`;
+                });
+                table += '</table>';
+                document.getElementById('dataDisplay').innerHTML = table;
+            });
+    });
+</script>
+
+
 {% endblock %} 
+
+
+
+

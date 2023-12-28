@@ -133,3 +133,8 @@ def site_data(request):
         return HttpResponse("File uploaded and database updated.")
     
     return render(request, "listing/site_data.html")
+
+
+def get_api_config_data(request):
+    data = list(APIConfig.objects.values('url', 'user', 'password', 'template_no'))
+    return JsonResponse(data, safe=False)
