@@ -27,9 +27,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('startProcess').addEventListener('click', function(event) {
                 event.preventDefault();
+                clearTable();
         
                 let form = document.getElementById('uploadForm');
                 let formData = new FormData(form);
+        
+                console.log("Form submitted, awaiting task IDs...");
         
                 fetch('{% url "home" %}', {
                     method: 'POST',
@@ -38,12 +41,11 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.task_ids) {
+                        console.log("Received task IDs:", data.task_ids);
                         data.task_ids.forEach(taskId => {
                             checkTaskStatus(taskId);
                         });
-                        // Start fetching links immediately and then every 2 seconds
-                        fetchGeneratedLinks();
-                        setInterval(fetchGeneratedLinks, 4000);
+                        setTimeout(fetchGeneratedLinks, 2000); // Adjust the delay as needed
                     } else {
                         console.error('Form submission did not return task IDs');
                     }
@@ -55,44 +57,45 @@
                 fetch(`/get-task-result/${taskId}/`)
                     .then(response => response.json())
                     .then(data => {
+                        console.log(`Status for task ${taskId}:`, data);
                         if (data.status === 'SUCCESS') {
-                            // Update the UI immediately when each task is completed
                             addLinkToTable(data.url);
                         } else if (data.status === 'PENDING') {
-                            setTimeout(() => checkTaskStatus(taskId), 4000); // Check again after 2 seconds
-                        } else {
-                            // Handle failure
+                            setTimeout(() => checkTaskStatus(taskId), 2000); // Check again after 2 seconds
                         }
+                        // Handle failure case as needed
                     })
                     .catch(error => console.error('Error:', error));
             }
         
             function addLinkToTable(url) {
                 let tableBody = document.querySelector('#linksTable tbody');
+                console.log("Current row count before adding:", tableBody.rows.length); // For debugging
                 let row = tableBody.insertRow();
                 let cellNumber = row.insertCell(0);
                 let cellLink = row.insertCell(1);
-                cellNumber.textContent = tableBody.rows.length + 1;
+                cellNumber.textContent = tableBody.rows.length; // This should now be the new row count after insertion
                 cellLink.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
             }
-        
+                    
             function fetchGeneratedLinks() {
-            fetch('/get-generated-links-json/')
-                .then(response => response.json())
-                .then(data => {
-                    let tableBody = document.querySelector('#linksTable tbody');
-                    tableBody.innerHTML = ''; // Clear the table before adding new rows
-
-                    data.links.forEach((url, index) => {
-                        let row = tableBody.insertRow();
-                        let cellNumber = row.insertCell(0);
-                        let cellLink = row.insertCell(1);
-                        cellNumber.textContent = index + 1;
-                        cellLink.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
-                    });
-                })
-                .catch(error => console.error('Error:', error));
-        }
+                fetch('/get-generated-links-json/')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Fetched links:", data.links);
+                        let tableBody = document.querySelector('#linksTable tbody');
+                        tableBody.innerHTML = ''; // Clear the table before adding new rows
+                        data.links.forEach((url, index) => {
+                            addLinkToTable(url);
+                        });
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        
+            function clearTable() {
+                let tableBody = document.querySelector('#linksTable tbody');
+                tableBody.innerHTML = ''; // Clear the table
+            }
         });
         </script>
         
