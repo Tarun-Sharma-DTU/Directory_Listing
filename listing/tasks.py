@@ -258,7 +258,6 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
 
     # Sending the POST request
     try:
-      time.sleep(30)
       response = requests.post(json_url + '/posts', headers=header, json=post)
       if response.status_code == 201:
         json_data = response.json()

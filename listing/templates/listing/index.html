@@ -77,22 +77,22 @@
             }
         
             function fetchGeneratedLinks() {
-                fetch('/get-generated-links-json/')
-                    .then(response => response.json())
-                    .then(data => {
-                        let tableBody = document.querySelector('#linksTable tbody');
-                        // Update table without clearing previous rows
-                        let currentRowCount = tableBody.rows.length;
-                        data.links.slice(currentRowCount).forEach((url, index) => {
-                            let row = tableBody.insertRow();
-                            let cellNumber = row.insertCell(0);
-                            let cellLink = row.insertCell(1);
-                            cellNumber.textContent = currentRowCount + index + 1;
-                            cellLink.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
-                        });
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
+            fetch('/get-generated-links-json/')
+                .then(response => response.json())
+                .then(data => {
+                    let tableBody = document.querySelector('#linksTable tbody');
+                    tableBody.innerHTML = ''; // Clear the table before adding new rows
+
+                    data.links.forEach((url, index) => {
+                        let row = tableBody.insertRow();
+                        let cellNumber = row.insertCell(0);
+                        let cellLink = row.insertCell(1);
+                        cellNumber.textContent = index + 1;
+                        cellLink.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
         });
         </script>
         
