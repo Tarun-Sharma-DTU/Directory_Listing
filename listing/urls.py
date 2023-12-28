@@ -1,16 +1,21 @@
 from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views
-from .admin import admin_site
+from django.contrib import admin
 
 
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
     path('login/', views.login_view, name='login'),
     path('', views.home, name='home'),
     path('site-data', views.site_data, name='site_data'),
     path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
-    path('admin/', admin_site.urls),
+    path('get-task-result/<str:task_id>/', views.get_task_result, name='get_task_result'),
+
+    path('get-generated-links/', views.get_generated_links, name='get_generated_links'),
+    path('get-generated-links-json/', views.get_generated_links_json, name='get-generated-links-json'),
+
 
 
 ]

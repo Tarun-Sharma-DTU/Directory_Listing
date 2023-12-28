@@ -1,13 +1,9 @@
-from .models import APIConfig
-from django.contrib.admin import AdminSite, site
+from .models import APIConfig, GeneratedURL
+from django.contrib import admin
 
 
+class APIConfigAdmin(admin.ModelAdmin):
+    list_display = ('url', 'user', 'password', 'template_no') 
 
-
-class MyAdminSite(AdminSite):
-    site_header = 'Listing Admin Dashboard'
-
-admin_site = AdminSite(name='custom_admin')
-
-# Register your models with the custom AdminSite instance
-admin_site.register(APIConfig)
+admin.site.register(APIConfig, APIConfigAdmin)
+admin.site.register(GeneratedURL)

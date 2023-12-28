@@ -5,7 +5,8 @@
 {% block content %}
 
 
-<form id="site_data_Form" enctype="multipart/form-data" class="mb-4">
+<form id="site_data_Form" enctype="multipart/form-data" method="POST" class="mb-4">
+    {% csrf_token %}
     <div class="row g-3">
         <div class="col-md-4">
             <label for="site_excel_file" class="form-label">Upload your site data</label>

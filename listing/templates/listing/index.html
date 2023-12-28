@@ -23,5 +23,91 @@
         </div>
     </form>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('startProcess').addEventListener('click', function(event) {
+                event.preventDefault();
+        
+                let form = document.getElementById('uploadForm');
+                let formData = new FormData(form);
+        
+                fetch('{% url "home" %}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.task_ids) {
+                        data.task_ids.forEach(taskId => {
+                            checkTaskStatus(taskId);
+                        });
+                        // Start fetching links immediately and then every 2 seconds
+                        fetchGeneratedLinks();
+                        setInterval(fetchGeneratedLinks, 2000);
+                    } else {
+                        console.error('Form submission did not return task IDs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        
+            function checkTaskStatus(taskId) {
+                fetch(`/get-task-result/${taskId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'SUCCESS') {
+                            // Update the UI immediately when each task is completed
+                            addLinkToTable(data.url);
+                        } else if (data.status === 'PENDING') {
+                            setTimeout(() => checkTaskStatus(taskId), 2000); // Check again after 2 seconds
+                        } else {
+                            // Handle failure
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        
+            function addLinkToTable(url) {
+                let tableBody = document.querySelector('#linksTable tbody');
+                let row = tableBody.insertRow();
+                let cellNumber = row.insertCell(0);
+                let cellLink = row.insertCell(1);
+                cellNumber.textContent = tableBody.rows.length + 1;
+                cellLink.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
+            }
+        
+            function fetchGeneratedLinks() {
+                fetch('/get-generated-links-json/')
+                    .then(response => response.json())
+                    .then(data => {
+                        let tableBody = document.querySelector('#linksTable tbody');
+                        // Update table without clearing previous rows
+                        let currentRowCount = tableBody.rows.length;
+                        data.links.slice(currentRowCount).forEach((url, index) => {
+                            let row = tableBody.insertRow();
+                            let cellNumber = row.insertCell(0);
+                            let cellLink = row.insertCell(1);
+                            cellNumber.textContent = currentRowCount + index + 1;
+                            cellLink.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
+                        });
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        });
+        </script>
+        
+        
+    <table id="linksTable" class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Link</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JavaScript will populate table body -->
+        </tbody>
+      </table>
+      
 {% endblock %} 
     

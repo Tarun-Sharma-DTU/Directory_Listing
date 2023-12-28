@@ -1,6 +1,26 @@
 from celery import shared_task
 import requests
 import base64
+import json
+import time
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
+
+
+
+def convert_to_embed_url(youtube_url):
+    # Check if the URL is already an embed URL
+    if "youtube.com/embed/" in youtube_url:
+        return youtube_url  # It's already an embed URL, no change needed
+    # Check if the URL is a valid watch URL and extract the video ID
+    elif "watch?v=" in youtube_url:
+        video_id = youtube_url.split('watch?v=')[-1]
+        # Create the embed URL with the extracted video ID
+        embed_url = f"https://www.youtube.com/embed/{video_id}"
+        return embed_url
+    else:
+        return "Invalid YouTube URL"
+
 
 
 @shared_task
@@ -27,11 +47,12 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     target_location = row_values[9]
     services_offered = row_values[10]
     gallery_image_urls = row_values[11]
-    youtube_video_url = row_values[12]
+    youtube_video_url = convert_to_embed_url(row_values[12])
     linkedin_url = row_values[13]
     facebook_url = row_values[14]
     twitter_url = row_values[15]
-    youtube_url = row_values[16]   
+    youtube_url = row_values[16]
+    print(youtube_url)
     # Processing company hours
     company_hours = company_hours_raw.split('\n') if company_hours_raw else []
     hours_html = "<br>".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
@@ -68,7 +89,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
             </div>
             <div class="map-container">
               <h2>Find Us On The Map</h2>
-              <iframe src="{google_map_src}" style="width: 100%; height: 500px;" allowfullscreen></iframe>
+              {google_map_src}
             </div>
           </div>
          <div class="highlight">
@@ -108,11 +129,12 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     social_media_buttons = ""
 
     # Check if each URL has a value and generate the corresponding HTML
+    print("LInkedin URL:", linkedin_url)
     if linkedin_url:
         social_media_buttons += f'''
           <!-- LinkedIn -->
           <a title="LinkedIn" class="button-social has-action" href="{linkedin_url}" target="_blank">
-            <i class="fa fa-linkedin" aria-hidden="true"></i>
+            <i class="fab fa-linkedin-in"></i>
           </a>
         '''
 
@@ -120,7 +142,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         social_media_buttons += f'''
           <!-- Facebook -->
           <a title="Facebook" class="button-social has-action" href="{facebook_url}" target="_blank">
-            <i class="fa fa-facebook" aria-hidden="true"></i>
+            <i class="fab fa-facebook-f"></i>
           </a>
         '''
 
@@ -128,7 +150,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         social_media_buttons += f'''
           <!-- Twitter -->
           <a title="Twitter" class="button-social has-action" href="{twitter_url}" target="_blank">
-            <i class="fa fa-twitter" aria-hidden="true"></i>
+            <i class="fab fa-twitter"></i>
           </a>
         '''
 
@@ -136,7 +158,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         social_media_buttons += f'''
           <!-- YouTube -->
           <a title="YouTube" class="button-social has-action" href="{youtube_url}" target="_blank">
-            <i class="fa fa-youtube" aria-hidden="true"></i>
+           <i class="fab fa-youtube"></i>
           </a>
         '''
 
@@ -208,10 +230,10 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         </section>        
           {galleries_2}        
 
-        <section id="gallerySection" class="gallery-section">
-          <h3 class="feature-title">Gallery</h3>
+        <section id="mapsection" class="gallery-section">
+          <h3 class="feature-title">Find Us On Map</h3>
           <div class="google-maps-embed">
-            <iframe class="google-map-iframe" src="{google_map_src}"></iframe>
+            {google_map_src}
           </div>
         </section>
 
@@ -235,7 +257,18 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     }
 
     # Sending the POST request
+    try:
+      time.sleep(30)
+      response = requests.post(json_url + '/posts', headers=header, json=post)
+      if response.status_code == 201:
+        json_data = response.json()
+        draft_post_link = json_data.get('link', None)
+        logger.info(f"Task completed successfully with URL: {draft_post_link}")
 
-    response = requests.post(json_url + '/posts', headers=header, json=post)
-    print(response)
+        return draft_post_link
+    except Exception as e:
+        logger.error(f"Task failed: {e}")
+        raise e
+
+
 
