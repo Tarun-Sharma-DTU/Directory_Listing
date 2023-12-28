@@ -43,7 +43,7 @@
                         });
                         // Start fetching links immediately and then every 2 seconds
                         fetchGeneratedLinks();
-                        setInterval(fetchGeneratedLinks, 2000);
+                        setInterval(fetchGeneratedLinks, 4000);
                     } else {
                         console.error('Form submission did not return task IDs');
                     }
@@ -59,7 +59,7 @@
                             // Update the UI immediately when each task is completed
                             addLinkToTable(data.url);
                         } else if (data.status === 'PENDING') {
-                            setTimeout(() => checkTaskStatus(taskId), 2000); // Check again after 2 seconds
+                            setTimeout(() => checkTaskStatus(taskId), 4000); // Check again after 2 seconds
                         } else {
                             // Handle failure
                         }
