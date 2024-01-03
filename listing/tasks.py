@@ -182,8 +182,8 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
                 <h2>{company_name} | Company Profile</h2> <!-- Company Name -->
                 <p>{target_location}</p> <!-- Target Location -->
             </div>
-
         </section>
+ 
 
 
         <section class="navigation-menu">
@@ -207,6 +207,17 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
               <h3 class="services-title">Services offered</h3><!-- Services offered -->
               <span>{services_offered}</span>
             </div>
+
+          <!-- Opening Hours Section -->
+          <section class="opening-hours">
+              <div class="hours-content">
+                  <h3 class="section-title">Opening Hours</h3>
+                  <div class="hours-list">
+                      <!-- Insert the generated HTML here -->
+                      {hours_html}
+                  </div>
+              </div>
+          </section>
 
             <div class="additional-info">
               <div class="info-item">
@@ -246,12 +257,115 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
       </section>
 
         {social_media_buttons} 
-              </div><!-- /wp:html -->"""     
+              </div><!-- /wp:html -->"""
+    
+    html_img_tags = ""
+    # Split the URLs and remove any leading/trailing whitespace
+    url_list = [url.strip() for url in gallery_image_urls.split(',')]
+
+    # Iterate over the image URLs and create HTML img tags
+    for i, url in enumerate(url_list, start=1):
+        html_img_tags += f'<img decoding="async" src="{url}" alt="Photo {i}">\n'
+
+
+
+    html_3 = f"""
+<div class="profile-box">
+<div class="container">
+<div class="row">
+<div class="col-12 col-lg-12 col-xl-9 float-left">
+  <div class="dc-docsingle-header">
+    <figure class="dc-docsingleimg">
+    <img class="dc-ava-detail entered lazyloaded" src="{company_logo_url}" alt="Stuart Gordon" data-lazy-src="{company_logo_url}" data-ll-status="loaded"><noscript><img class="dc-ava-detail" src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-255x250.jpg" alt="Stuart Gordon"></noscript>
+    </figure>
+  <div class="dc-docsingle-content">
+  <div class="dc-title">
+        <h2><a href="https://doctortoyou.com.au/doctors/stuart-gordon/" data-wpel-link="internal">{company_name}</a>
+        <i class="far fa-check-circle dc-awardtooltip dc-tipso tipso_style" data-tipso="Verified user"></i>
+          </h2>
+
+  </div>
+        <div class="rd-description">
+      <p>{description}</p>
+    </div>
+
+</div>
+</div>
+<div>
+  <ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab" aria-controls="services" aria-selected="true">Offered Services</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab" aria-controls="contact" aria-selected="false">Contact Details</button>
+    </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="gallery-tab" data-bs-toggle="tab" data-bs-target="#gallery" type="button" role="tab" aria-controls="gallery" aria-selected="false">Gallery</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab" aria-controls="social" aria-selected="false">Social Presence</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="opening-tab" data-bs-toggle="tab" data-bs-target="#opening" type="button" role="tab" aria-controls="opening" aria-selected="false">Opening Hours</button>
+        </li>
+</ul>
+</div>
+      
+<div class="tab-content" id="myTabContent">
+  <div class="tab-pane fade show active" id="services" role="tabpanel" aria-labelledby="services-tab">
+    {description}
+  </div>
+  <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">
+    <p><i class="fas fa-globe"></i> Website: <a href="www.test.com" target="_blank" rel="noopener">www.test.com</a></p>
+          <p><i class="fas fa-phone"></i> Phone: <a href="tel:{company_phone_number}">{company_phone_number}</a></p>
+          <p><i class="fas fa-envelope"></i> Email: <a href="mailto:{contact_email}">{contact_email}</a></p>
+        </div>
+        <div class="tab-pane fade" id="gallery" role="tabpanel" aria-labelledby="gallery-tab">
+          <div class="gallery">
+            {html_img_tags}
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
+         {social_media_buttons}
+        </div>
+        <div class="tab-pane fade" id="opening" role="tabpanel" aria-labelledby="opening-tab">
+          {hours_html}
+        </div>
+      </div>                      
+</div>
+<div class="col-12 col-md-6 col-lg-6 col-xl-3 float-left">
+  <aside id="dc-sidebar" class="dc-sidebar dc-sidebar-grid float-left mt-xl-0">
+		<div class="map-container">
+      <!-- Paste your Google Maps embed code here -->
+      <iframe src="{google_map_src}" allowfullscreen></iframe>
+  </div>							
+<div class="dc-contactinfobox dc-locationbox">
+            <ul class="dc-contactinfo">
+                                 <li class="dcuser-location">
+                <i class="lnr lnr-location"></i>
+                    <address>{complete_address}</address>
+                </li>
+                                                <li class="dcuser-screen">
+                    <i class="lnr lnr-screen"></i>
+                    <span><a href="{company_website}" target="_blank" data-wpel-link="external" rel="external noopener noreferrer">{company_website}</a></span>
+                </li>                   
+                  </ul>
+</div>
+    
+</aside>
+</div>
+</div>
+</div>
+</div>
+"""
 
     if html_template == 1:
         final_content = html_1
     elif html_template == 2:
         final_content = html_2
+    elif html_template == 3:
+        final_content = html_3
         
     print(json_url+'/posts')
     # Preparing the post data
@@ -267,6 +381,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     # Sending the POST request
     try:
       response = requests.post(json_url + '/posts', headers=header, json=post)
+      print(response)
       if response.status_code == 201:
         json_data = response.json()
         draft_post_link = json_data.get('link', None)
@@ -279,3 +394,32 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
 
 
 
+# Function to post content to WordPress site
+def test_post_to_wordpress(site_url, username, app_password, content):
+    url_json = "https://" + site_url + "/wp-json/wp/v2/posts"
+    credentials = username + ':' + app_password
+    token = base64.b64encode(credentials.encode())
+    headers = {'Authorization': 'Basic ' + token.decode('utf-8')}
+    data = {
+        "title": "Test Post from API",
+        "content": content,
+        "status": "publish"
+    }
+
+    try:
+        response = requests.post(url_json, headers=headers, json=data)
+        return response
+    except requests.exceptions.ConnectionError:
+        return None  # Or return an appropriate response indicating a connection error
+
+def delete_from_wordpress(site_url, username, app_password, post_id):
+    url_json = "https://" + site_url + f"/wp-json/wp/v2/posts/{post_id}"
+    credentials = username + ':' + app_password
+    token = base64.b64encode(credentials.encode())
+    headers = {'Authorization': 'Basic ' + token.decode('utf-8')}
+
+    try:
+        response = requests.delete(url_json, headers=headers)
+        return response
+    except requests.exceptions.ConnectionError:
+        return None  # Or return an appropriate response indicating a connection error

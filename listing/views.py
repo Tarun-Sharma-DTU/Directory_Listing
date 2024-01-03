@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .tasks import create_company_profile_post
+from .tasks import create_company_profile_post, test_post_to_wordpress, delete_from_wordpress
 from django.shortcuts import render
 import openpyxl
 from .models import APIConfig, GeneratedURL
@@ -10,6 +10,9 @@ import pandas as pd
 from django.http import HttpResponse, JsonResponse
 from celery.result import AsyncResult
 import logging
+from django.views.decorators.http import require_http_methods
+import json
+
 
 logger = logging.getLogger(__name__)
 
@@ -136,5 +139,49 @@ def site_data(request):
 
 
 def get_api_config_data(request):
-    data = list(APIConfig.objects.values('url', 'user', 'password', 'template_no'))
+    data = list(APIConfig.objects.values('url', 'user', 'password', 'Test Content'))
     return JsonResponse(data, safe=False)
+
+
+@require_http_methods(["GET", "POST"])
+def rest_api_test(request):
+    context = {'api_configs': APIConfig.objects.all()}
+    if request.method == 'POST':
+        selected_url = request.POST.get('api_url')
+        try:
+            selected_config = APIConfig.objects.get(url=selected_url)
+            username = selected_config.user
+            password = selected_config.password
+            template_no = selected_config.template_no
+
+            response = test_post_to_wordpress(selected_url, username, password, template_no)
+
+            # Assume test_post_to_wordpress returns a response object
+            if response.status_code in [200, 201]:
+                 # Add a message about the successful post
+                messages.success(request, "Post Created successfully.")
+                # Handle successful response
+                response_data = json.loads(response.text) 
+                post_id = response_data.get('id')
+                delete_response = delete_from_wordpress(selected_url, username, password, post_id)                
+                # Check delete response and inform the user
+                if delete_response is not None and delete_response.status_code == 200:
+                    messages.success(request, "Post deleted successfully.")
+                else:
+                    messages.error(request, "Failed to delete post.")
+            else:
+                # Handle unsuccessful response
+                messages.error(request, f"Site test failed with status code: {response.status_code}")
+
+        except APIConfig.DoesNotExist:
+            messages.error(request, "Selected site configuration does not exist.")
+        except APIConfig.MultipleObjectsReturned:
+            messages.error(request, "Multiple configurations found for the selected site.")
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+        finally:
+            # Redirect to the same page to display messages
+            return redirect('rest_api_test')  # Ensure 'rest_api_test' is the correct name for your URL pattern
+
+    # Handle GET request
+    return render(request, 'listing/rest_api_test.html', context)

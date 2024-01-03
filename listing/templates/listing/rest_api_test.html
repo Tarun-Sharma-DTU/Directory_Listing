@@ -1,0 +1,29 @@
+{% extends "listing/base.html" %}
+
+{% block title %}Directory Listing Automation{% endblock %}
+
+{% block content %}
+<form method="post" action="{% url 'rest_api_test' %}"> <!-- Adjust the URL as necessary -->
+    {% csrf_token %}
+    <div class="dropdown-container">
+        <label for="site-dropdown">Select any site from the dropdown:</label>
+        <select name="api_url" id="site-dropdown">
+            {% for config in api_configs %}
+                <option value="{{ config.url }}">{{ config.url }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" id="test-site-button">Test Site</button>
+    </div>
+</form>
+
+<!-- Display the response or error message -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+
+{% endblock %}
