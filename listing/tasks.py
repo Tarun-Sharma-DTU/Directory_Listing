@@ -269,8 +269,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
 
 
 
-    html_3 = f"""
-<div class="profile-box">
+    html_3 = f"""<!-- wp:html --><div class="profile-box">
 <div class="container">
 <div class="row">
 <div class="col-12 col-lg-12 col-xl-9 float-left">
@@ -351,14 +350,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
                     <span><a href="{company_website}" target="_blank" data-wpel-link="external" rel="external noopener noreferrer">{company_website}</a></span>
                 </li>                   
                   </ul>
-</div>
-    
-</aside>
-</div>
-</div>
-</div>
-</div>
-"""
+</div></aside></div></div></div></div><!-- /wp:html -->"""
 
     if html_template == 1:
         final_content = html_1
