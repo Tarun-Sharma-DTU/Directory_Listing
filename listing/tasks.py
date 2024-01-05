@@ -395,12 +395,13 @@ def test_post_to_wordpress(site_url, username, app_password, content):
     data = {
         "title": "Test Post from API",
         "content": content,
-        "status": "publish"
+        "status": "draft"
     }
 
     try:
         response = requests.post(url_json, headers=headers, json=data)
         return response
+    
     except requests.exceptions.ConnectionError:
         return None  # Or return an appropriate response indicating a connection error
 

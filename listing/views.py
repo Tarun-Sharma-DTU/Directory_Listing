@@ -158,15 +158,17 @@ def rest_api_test(request):
 
             # Assume test_post_to_wordpress returns a response object
             if response.status_code in [200, 201]:
+                json_data = response.json()
+                post_link = json_data.get('link', None)
                  # Add a message about the successful post
-                messages.success(request, "Post Created successfully.")
+                messages.success(request, f"Post Created successfully on {post_link}.")
                 # Handle successful response
                 response_data = json.loads(response.text) 
                 post_id = response_data.get('id')
                 delete_response = delete_from_wordpress(selected_url, username, password, post_id)                
                 # Check delete response and inform the user
                 if delete_response is not None and delete_response.status_code == 200:
-                    messages.success(request, "Post deleted successfully.")
+                    messages.success(request, f"Post deleted successfully on {post_link}.")
                 else:
                     messages.error(request, "Failed to delete post.")
             else:
