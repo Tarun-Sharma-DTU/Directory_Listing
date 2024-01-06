@@ -20,3 +20,7 @@ class GeneratedURL(models.Model):
 
     def __str__(self):
         return self.url
+    
+class TestResult(models.Model):
+    config = models.ForeignKey(APIConfig, on_delete=models.CASCADE)
+    status = models.CharField(max_length=100)

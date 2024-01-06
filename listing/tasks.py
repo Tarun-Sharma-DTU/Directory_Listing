@@ -416,3 +416,32 @@ def delete_from_wordpress(site_url, username, app_password, post_id):
         return response
     except requests.exceptions.ConnectionError:
         return None  # Or return an appropriate response indicating a connection error
+    
+
+@shared_task(bind=True)  # bind the task to have self parameter for retry etc.
+def perform_test_task(self, config_id):
+    try:
+        from .models import APIConfig, TestResult  # Import here to avoid circular import
+        config = APIConfig.objects.get(id=config_id)
+        
+        # Mocking the test function behavior
+        response = test_post_to_wordpress(config.url, config.user, config.password, "Test Content")
+        if response.status_code in [200, 201]:
+            response_data = response.json()
+            post_id = response_data.get('id')
+            delete_response = delete_from_wordpress(config.url, config.user, config.password, post_id)
+            
+            if delete_response is not None and delete_response.status_code == 200:
+                result = 'Success'
+            else:
+                result = 'Failed to delete post'
+        else:
+            result = f'Failed with status code: {response.status_code}'
+        
+        # Store the result somewhere that the AJAX can retrieve
+        TestResult.objects.create(config=config, status=result)
+    except Exception as e:
+        # Log the error
+        print(f"Error in perform_test_task for config ID {config_id}: {e}")
+        # Store the error status
+        TestResult.objects.create(config_id=config_id, status='Error')

@@ -14,11 +14,13 @@
                 <label for="site_number" class="form-label">Number Of Sites</label>
                 <input type="number" class="form-control" name="site_number" id="site_number" placeholder="Enter Site Number">
             </div>
-           
         </div>
         <div class="row mt-3">
             <div class="col">
                 <button type="submit" id="startProcess" class="btn btn-primary" style="background-color: #a453ca;">Start Posting</button>
+            </div>
+            <div class="col">
+                <button id="stopProcess" class="btn btn-danger">Stop Process</button>
             </div>
         </div>
     </form>
@@ -26,8 +28,24 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('startProcess').addEventListener('click', function(event) {
-                event.preventDefault();
+                let siteNumber = document.getElementById('site_number').value;
+                let excelFile = document.getElementById('excel_file').files.length;
+
+
+                if (excelFile === 0) {
+                    alert('Please upload an Excel file.');
+                    event.preventDefault();  // Prevent the form from submitting
+                    return;  // Prevents further execution
+                }
+                
+                if (siteNumber === '') {
+                    event.preventDefault();  // Prevent the form from submitting
+                    alert('Please enter the site number.');
+                    return;  // Prevents further execution
+                }
+                // If both checks pass, clear the table and proceed with form submission
                 clearTable();
+
         
                 let form = document.getElementById('uploadForm');
                 let formData = new FormData(form);
@@ -52,7 +70,7 @@
                 })
                 .catch(error => console.error('Error:', error));
             });
-        
+
             function checkTaskStatus(taskId) {
                 fetch(`/get-task-result/${taskId}/`)
                     .then(response => response.json())
@@ -67,7 +85,7 @@
                     })
                     .catch(error => console.error('Error:', error));
             }
-        
+
             function addLinkToTable(url) {
                 let tableBody = document.querySelector('#linksTable tbody');
                 console.log("Current row count before adding:", tableBody.rows.length); // For debugging
@@ -91,26 +109,56 @@
                     })
                     .catch(error => console.error('Error:', error));
             }
-        
+
             function clearTable() {
                 let tableBody = document.querySelector('#linksTable tbody');
                 tableBody.innerHTML = ''; // Clear the table
             }
         });
-        </script>
-        
-        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.getElementById('stopProcess').addEventListener('click', function() {
+            fetch('/path/to/stop_process/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),  // Add CSRF token for Django POST requests
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Process stopped:', data);
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+
+
+    </script>
+
     <table id="linksTable" class="table">
         <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Link</th>
-          </tr>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Link</th>
+            </tr>
         </thead>
         <tbody>
-          <!-- JavaScript will populate table body -->
+            <!-- JavaScript will populate table body -->
         </tbody>
-      </table>
-      
+    </table
+
 {% endblock %} 
     

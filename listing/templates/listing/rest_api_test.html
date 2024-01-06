@@ -3,20 +3,75 @@
 {% block title %}Directory Listing Automation{% endblock %}
 
 {% block content %}
-<form method="post" action="{% url 'rest_api_test' %}"> <!-- Adjust the URL as necessary -->
-    {% csrf_token %}
-    <div class="dropdown-container">
-        <label for="site-dropdown">Select any site from the dropdown:</label>
-        <select name="api_url" id="site-dropdown">
-            {% for config in api_configs %}
-                <option value="{{ config.url }}">{{ config.url }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit" id="test-site-button">Test Site</button>
+<div class="container my-4">
+    <h2 class="mb-4">WordPress Rest API Testing</h2>
+    <form method="post" action="{% url 'rest_api_test' %}" class="row g-3 align-items-center">
+        {% csrf_token %}
+        <div class="col-auto">
+            <label for="site-dropdown" class="col-form-label">Select a site from the dropdown:</label>
+        </div>
+        <div class="col-auto">
+            <select name="api_url" id="site-dropdown" class="form-select">
+                {% for config in api_configs %}
+                    <option value="{{ config.url }}">{{ config.url }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" name="test_single" class="btn btn-primary">Test Site</button>
+        </div>
+        <div class="col-auto">
+            <button type="submit" name="test_all" class="btn btn-info">Test All Sites</button>
+        </div>
+    </form>
+    <div>
+        <a href="{% url 'download_failed_tests' %}" class="btn btn-success">Download Failed Sites List</a>
     </div>
-</form>
+</div>
 
-<!-- Display the response or error message -->
+<!-- Table for displaying test results -->
+<table style="width:100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">SL No.</th>
+        <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Site Name</th>
+        <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Status</th>
+      </tr>
+    </thead>
+    <tbody id="test-status">
+      <!-- Content will be populated by JavaScript -->
+    </tbody>
+  </table>
+
+  <script>
+    function updateTestStatus() {
+        $.ajax({
+            url: '{% url "test_status_update" %}',
+            success: function(data) {
+                var tbody = $('#test-status');
+                tbody.empty(); // Clear existing rows
+                var slNo = 1;  // Initialize serial number
+                $.each(data, function(url, status) {
+                    // Determine row color based on status
+                    var color = status === 'Success' ? '#A7FF3B' : '#FF7E83';
+                    var row = '<tr style="background-color:' + color + ';">' +
+                              '<td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' + slNo++ + '</td>' +
+                              '<td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' + url + '</td>' +
+                              '<td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' + status + '</td>' +
+                              '</tr>';
+                    tbody.append(row); // Add the row to the table
+                });
+            }
+        });
+    }
+    var statusInterval = setInterval(updateTestStatus, 3000); // Poll every 3 seconds
+</script>
+
+
+
+    
+
+<!-- Display the response or error messages -->
 {% if messages %}
     {% for message in messages %}
         <div class="alert {{ message.tags }}">
@@ -24,6 +79,5 @@
         </div>
     {% endfor %}
 {% endif %}
-
 
 {% endblock %}

@@ -120,3 +120,6 @@ broker_connection_retry_on_startup = True
 LOGIN_URL = 'login' 
 
 
+# Assuming your settings.py is in the same directory as manage.py
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

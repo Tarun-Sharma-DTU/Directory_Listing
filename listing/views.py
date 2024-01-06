@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
-from .tasks import create_company_profile_post, test_post_to_wordpress, delete_from_wordpress
+from .tasks import create_company_profile_post, test_post_to_wordpress, delete_from_wordpress, perform_test_task
 from django.shortcuts import render
 import openpyxl
-from .models import APIConfig, GeneratedURL
+from .models import APIConfig, GeneratedURL, TestResult
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
@@ -11,7 +11,10 @@ from django.http import HttpResponse, JsonResponse
 from celery.result import AsyncResult
 import logging
 from django.views.decorators.http import require_http_methods
+from django.http import FileResponse, HttpResponseNotFound
+from django.conf import settings
 import json
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -34,8 +37,14 @@ def login_view(request):
     return render(request, 'registration/login.html')  # Replace with your template name
 
 @login_required
+def stop_process(request):
+    request.session['stop_signal'] = True
+    return JsonResponse({'status': 'stopped'})
+
+@login_required
 def home(request):
     if request.method == 'POST' and 'excel_file' in request.FILES:
+        site_number = int(request.POST.get('site_number'))
         excel_file = request.FILES['excel_file']
         wb = openpyxl.load_workbook(excel_file, data_only=True)
         sheet = wb.active
@@ -47,7 +56,9 @@ def home(request):
         task_ids = []
         delay_seconds = 0  # initial delay
 
-        for api_config in api_configs:
+        for api_config in api_configs[:site_number+1]:
+            if request.session.get('stop_signal', False):
+                break
             url = api_config.url.rstrip('/')
             json_url = f"https://{url}/wp-json/wp/v2"
             task = create_company_profile_post.apply_async(
@@ -139,51 +150,101 @@ def site_data(request):
 
 
 def get_api_config_data(request):
-    data = list(APIConfig.objects.values('url', 'user', 'password', 'Test Content'))
+    data = list(APIConfig.objects.values('url', 'user', 'password', 'template_no'))
     return JsonResponse(data, safe=False)
 
 
 @require_http_methods(["GET", "POST"])
 def rest_api_test(request):
     context = {'api_configs': APIConfig.objects.all()}
+
+    # Clear previous results when the page is freshly loaded (GET request)
+    if request.method == 'GET':
+        TestResult.objects.all().delete()
+        request.session['test_status'] = {}  # Also clear the session info if you are using it
+
     if request.method == 'POST':
-        selected_url = request.POST.get('api_url')
-        try:
-            selected_config = APIConfig.objects.get(url=selected_url)
-            username = selected_config.user
-            password = selected_config.password
-            template_no = selected_config.template_no
+        # If the 'Test All' button is pressed
+        if 'test_all' in request.POST:
+            for config in context['api_configs']:
+                perform_test_task.delay(config.id)
+        # If the 'Test Site' button is pressed for a single site
+        elif 'test_single' in request.POST:
+            selected_url = request.POST.get('api_url')
+            try:
+                selected_config = APIConfig.objects.get(url=selected_url)
+                perform_test_task.delay(selected_config.id)
+            except APIConfig.DoesNotExist:
+                messages.error(request, "Selected site configuration does not exist.")
+            except APIConfig.MultipleObjectsReturned:
+                messages.error(request, "Multiple configurations found for the selected site.")
+            except Exception as e:
+                messages.error(request, f"An error occurred on {selected_url}: {e}")
 
-            response = test_post_to_wordpress(selected_url, username, password, template_no)
+        # Redirect to avoid re-posting on refresh
+        return redirect('rest_api_test')
 
-            # Assume test_post_to_wordpress returns a response object
-            if response.status_code in [200, 201]:
-                json_data = response.json()
-                post_link = json_data.get('link', None)
-                 # Add a message about the successful post
-                messages.success(request, f"Post Created successfully on {post_link}.")
-                # Handle successful response
-                response_data = json.loads(response.text) 
-                post_id = response_data.get('id')
-                delete_response = delete_from_wordpress(selected_url, username, password, post_id)                
-                # Check delete response and inform the user
-                if delete_response is not None and delete_response.status_code == 200:
-                    messages.success(request, f"Post deleted successfully on {post_link}.")
-                else:
-                    messages.error(request, "Failed to delete post.")
-            else:
-                # Handle unsuccessful response
-                messages.error(request, f"Site test failed with status code: {response.status_code}")
-
-        except APIConfig.DoesNotExist:
-            messages.error(request, "Selected site configuration does not exist.")
-        except APIConfig.MultipleObjectsReturned:
-            messages.error(request, "Multiple configurations found for the selected site.")
-        except Exception as e:
-            messages.error(request, f"An error occurred: {e}")
-        finally:
-            # Redirect to the same page to display messages
-            return redirect('rest_api_test')  # Ensure 'rest_api_test' is the correct name for your URL pattern
-
-    # Handle GET request
+    # Render the page with context
     return render(request, 'listing/rest_api_test.html', context)
+
+def test_status_update(request):
+    # Fetch test results and prepare the context
+    test_results = TestResult.objects.all()
+    test_status = {result.config.url: result.status for result in test_results}
+    return JsonResponse(test_status)
+
+def perform_test(request, config):
+    try:
+        username = config.user
+        print(username)
+        password = config.password
+        response = test_post_to_wordpress(config.url, username, password, "Test Content")
+        print(response)        
+        test_status = request.session.get('test_status', {})
+        if response.status_code in [201]:
+            test_status[config.url] = 'Success: Post Created successfully'                
+            json_data = response.json()
+            post_link = json_data.get('link', None)
+            messages.success(request, f"Post Created successfully on {post_link}.")
+            
+            response_data = json.loads(response.text)
+            post_id = response_data.get('id')
+            delete_response = delete_from_wordpress(config.url, username, password, post_id)
+            
+            if delete_response is not None and delete_response.status_code == 200:
+                messages.success(request, f"Post deleted successfully on {post_link}.")
+            else:
+                messages.error(request, "Failed to delete post.")
+        else:
+            test_status[config.url] = f'Failed: Site test failed with status code: {response.status_code}'
+            request.session['test_status'] = test_status
+            messages.error(request, f"Site test failed with status code: {response.status_code}")
+            # Save the failed URL to an Excel file
+            failed_url = {'URL': [config.url], 'Status Code': [response.status_code]}
+            new_df = pd.DataFrame(failed_url)
+            excel_file = 'failed_tests.xlsx'
+            if os.path.exists(excel_file):
+                # Read existing data
+                existing_data = pd.read_excel(excel_file)
+                # Concatenate new data with existing data
+                updated_data = pd.concat([existing_data, new_df], ignore_index=True)
+                updated_data.to_excel(excel_file, index=False)
+            else:
+                # If file does not exist, create new file
+                new_df.to_excel(excel_file, index=False)
+    except Exception as e:
+        messages.error(request, f"An error occurred while testing {config.url}: {e}")
+
+
+def download_file(request):
+    file_name = 'failed_tests.xlsx'
+    file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), file_name)
+    print(file_path)
+
+    if os.path.exists(file_path):
+        # Serve the file directly using FileResponse, which will handle the file opening
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=file_name)
+    else:
+        return HttpResponseNotFound('The requested file was not found on our server.')
+        
+        
