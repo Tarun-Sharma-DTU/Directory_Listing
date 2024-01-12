@@ -153,7 +153,6 @@ def get_api_config_data(request):
     data = list(APIConfig.objects.values('url', 'user', 'password', 'template_no'))
     return JsonResponse(data, safe=False)
 
-
 @require_http_methods(["GET", "POST"])
 def rest_api_test(request):
     context = {'api_configs': APIConfig.objects.all()}
@@ -166,8 +165,16 @@ def rest_api_test(request):
     if request.method == 'POST':
         # If the 'Test All' button is pressed
         if 'test_all' in request.POST:
+            task_ids = []
             for config in context['api_configs']:
                 perform_test_task.delay(config.id)
+
+            # Store the task_ids in the session for checking completion
+            request.session['test_all_task_ids'] = [perform_test_task.delay(config.id).id for config in context['api_configs']]
+            
+            # Redirect to avoid re-posting on refresh
+            return redirect('rest_api_test')
+
         # If the 'Test Site' button is pressed for a single site
         elif 'test_single' in request.POST:
             selected_url = request.POST.get('api_url')
@@ -188,10 +195,42 @@ def rest_api_test(request):
     return render(request, 'listing/rest_api_test.html', context)
 
 def test_status_update(request):
+    test_all = 'test_all' in request.POST
     # Fetch test results and prepare the context
     test_results = TestResult.objects.all()
     test_status = {result.config.url: result.status for result in test_results}
+    
+    if test_all:
+        # Save failed URLs to an Excel file
+        failed_urls = []
+
+        for url, status in test_status.items():
+            if 'Failed' in status:
+                failed_urls.append((url, status.split(":")[1].strip()))
+
+        if failed_urls:
+            # Create or update the Excel file
+            excel_file = 'failed_tests.xlsx'
+
+        if os.path.exists(excel_file):
+            existing_data = pd.read_excel(excel_file)
+            
+            new_failed_urls = []
+            for url, status in failed_urls:
+                if url not in existing_data['URL'].values:
+                    new_failed_urls.append((url, status))
+
+            new_data = pd.DataFrame(new_failed_urls, columns=['URL', 'Status'])
+                
+            updated_data = pd.concat([existing_data, new_data], ignore_index=True)
+
+            updated_data.to_excel(excel_file, index=False)
+        else:
+            new_data = pd.DataFrame(failed_urls, columns=['URL', 'Status'])
+            new_data.to_excel(excel_file, index=False)
+
     return JsonResponse(test_status)
+
 
 def perform_test(request, config):
     try:
@@ -219,19 +258,7 @@ def perform_test(request, config):
             test_status[config.url] = f'Failed: Site test failed with status code: {response.status_code}'
             request.session['test_status'] = test_status
             messages.error(request, f"Site test failed with status code: {response.status_code}")
-            # Save the failed URL to an Excel file
-            failed_url = {'URL': [config.url], 'Status Code': [response.status_code]}
-            new_df = pd.DataFrame(failed_url)
-            excel_file = 'failed_tests.xlsx'
-            if os.path.exists(excel_file):
-                # Read existing data
-                existing_data = pd.read_excel(excel_file)
-                # Concatenate new data with existing data
-                updated_data = pd.concat([existing_data, new_df], ignore_index=True)
-                updated_data.to_excel(excel_file, index=False)
-            else:
-                # If file does not exist, create new file
-                new_df.to_excel(excel_file, index=False)
+            # Save the failed URL to an Excel file            
     except Exception as e:
         messages.error(request, f"An error occurred while testing {config.url}: {e}")
 

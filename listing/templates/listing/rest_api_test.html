@@ -61,6 +61,11 @@
                               '</tr>';
                     tbody.append(row); // Add the row to the table
                 });
+
+                 // Check if all tasks are completed
+                 var allTasksCompleted = data && Object.values(data).every(function(value) {
+                    return value === 'Success';
+                });
             }
         });
     }
