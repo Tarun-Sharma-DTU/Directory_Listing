@@ -51,7 +51,7 @@ def home(request):
         second_row = sheet[2]
         row_values = [cell.value for cell in second_row]
 
-        api_configs = APIConfig.objects.all()
+        api_configs = APIConfig.objects.all().order_by('?')
         GeneratedURL.objects.filter(user=request.user).delete()
         task_ids = []
         delay_seconds = 0  # initial delay
