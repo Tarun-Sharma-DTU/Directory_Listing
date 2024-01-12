@@ -309,7 +309,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     <div class="col-12 col-lg-12 col-xl-9 float-left">
       <div class="dc-docsingle-header">
         <figure class="dc-docsingleimg">
-        <img class="dc-ava-detail entered lazyloaded" src="https://www.devonshiredental.net/assets/images/logo-icon-a.png" alt="Stuart Gordon" data-lazy-src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-255x250.jpg" data-ll-status="loaded"><noscript><img class="dc-ava-detail" src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-255x250.jpg" alt="Stuart Gordon"></noscript>
+        <img class="dc-ava-detail entered lazyloaded" src="{company_logo_url}" alt="Stuart Gordon" data-lazy-src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-255x250.jpg" data-ll-status="loaded"><noscript><img class="dc-ava-detail" src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-255x250.jpg" alt="Stuart Gordon"></noscript>
         <img class="dc-ava-detail-2x" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E" alt="Stuart Gordon" data-lazy-src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-545x428.jpg"><noscript><img class="dc-ava-detail-2x" src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-545x428.jpg" alt="Stuart Gordon"></noscript>
     
             </figure>
@@ -343,9 +343,9 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     <div class="tab-content" id="myTabContent">
       <div class="tab-pane fade show active" id="services" role="tabpanel" aria-labelledby="services-tab">
        {services_offered}
-      </div
+      </div>
     
-            <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
+        <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
               <div class="btn-group">
               {facebook_link_html_3}
               {youtube_link_html_3}

@@ -56,7 +56,7 @@ def home(request):
         task_ids = []
         delay_seconds = 0  # initial delay
 
-        for api_config in api_configs[:site_number+1]:
+        for api_config in api_configs[:site_number]:
             if request.session.get('stop_signal', False):
                 break
             url = api_config.url.rstrip('/')
@@ -199,7 +199,7 @@ def test_status_update(request):
     # Fetch test results and prepare the context
     test_results = TestResult.objects.all()
     test_status = {result.config.url: result.status for result in test_results}
-    
+
     if test_all:
         # Save failed URLs to an Excel file
         failed_urls = []
