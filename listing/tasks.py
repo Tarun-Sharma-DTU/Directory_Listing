@@ -423,7 +423,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     post = {
         'title': company_name,
         'slug': company_name,
-        'status': 'draft',
+        'status': 'publish',
         'content': final_content,
         # 'categories': 11,   # Uncomment and use as needed
         # 'featured_media': image_id  # Uncomment and use as needed
