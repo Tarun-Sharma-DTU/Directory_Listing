@@ -8,6 +8,8 @@ class APIConfig(models.Model):
     user = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
     template_no = models.IntegerField(default=1)
+    site_enable = models.BooleanField(default=True, verbose_name="Site Enable")
+
 
     def __str__(self):
         return self.url

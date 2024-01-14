@@ -55,7 +55,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     print(youtube_url)
     # Processing company hours
     company_hours = company_hours_raw.split('\n') if company_hours_raw else []
-    hours_html = "<br>".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
+    hours_html = "".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
     # Processing gallery images
     galleries = ""
     if gallery_image_urls:
@@ -168,24 +168,8 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         social_media_buttons = f'<section class="section-wrap" id="socialMediaLinks"><h2 class="feature-title">Digital & Online Presence</h2><div class="social-presence"><ul><li class="social-action"><div class="btn-group">\n{social_media_buttons}\n</div></li></ul></div></section>'
     
     
-    html_2 = f"""<!-- wp:html --><div>
-        <section class="business-profile">
-          <div class="cover-logo-container">  
-          <div class="cover-photo">
-                <img src="{company_logo_url}" alt="Profile Cover">
-          </div>
-            <div class="business-logo">
-                <img src="{company_logo_url}" alt="Business Logo">
-            </div>
-          </div>
-            <div class="business-info">
-                <h2>{company_name} | Company Profile</h2> <!-- Company Name -->
-                <p>{target_location}</p> <!-- Target Location -->
-            </div>
-        </section>
- 
-
-
+    html_2 = f"""<!-- wp:html -->
+    <div class="business-profile">
         <section class="navigation-menu">
           <div class="menu-links">
             <a href="#companyOverview" class="link-item active">About Company</a>
@@ -194,63 +178,64 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
           </div>
         </section>
 
-        <section id="companyOverview" class="profile-overview">
 
-          <div class="overview-content">
-            <h3 class="section-title">Business Overview</h3> <!-- Business Description -->
-            <div class="business-description">
-              <p>
-                {description}
-              </p>
+          <section id="companyOverview" class="profile-overview">
+            <div class="overview-content">
+              <h2 class="section-title">Business Overview</h2> <!-- Business Description -->
+              <div class="business-description">
+                <p>
+                  {description}
+                </p>
+              </div>
+              <div class="services-offered">
+                <h3 class="services-title">Services offered</h3>
+                <span>{services_offered}</span>
+              </div>
+
+              <div class="additional-info">
+                <div class="info-item">
+                  <h3>Company Website</h3>
+                  <p><a href="{company_website}">{company_website}</a></p>
+                </div>
+                <div class="info-item">
+                  <h3>Company Phone Number</h3>
+                  <p><a href="{company_phone_number}">{company_phone_number}</a></p>
+                </div>
+                <div class="info-item">
+                  <h3>Company Email</h3>
+                  <p><a href="mailto:{contact_email}">{contact_email}</a></p>
+                </div>
+                <div class="info-item">
+                  <h3>Address</h3>
+                  <p>{complete_address}</p>
+                </div>
+              </div>
             </div>
-            <div class="services-offered">
-              <h3 class="services-title">Services offered</h3><!-- Services offered -->
-              <span>{services_offered}</span>
-            </div>
+          </section>
 
           <!-- Opening Hours Section -->
           <section class="opening-hours">
               <div class="hours-content">
-                  <h3 class="section-title">Opening Hours</h3>
+                  <h2 class="section-title">Opening Hours</h2>
                   <div class="hours-list">
                       <!-- Insert the generated HTML here -->
                       {hours_html}
                   </div>
               </div>
           </section>
-
-            <div class="additional-info">
-              <div class="info-item">
-                <h3>Company Website</h3>
-                <p><a href="{company_website}">{company_website}</a></p> <!-- Company Website -->
-              </div>
-              <div class="info-item">
-                <h3>Company Phone Number</h3>
-                <p><a href="tel:{company_phone_number}">{company_phone_number}</a></p> <!-- Company Phone Number -->
-              </div>
-              <div class="info-item">
-                <h3>Company Email</h3>
-                <p><a href="mailto:{contact_email}">{contact_email}</a></p> <!-- Company Email -->
-              </div>
-              <div class="info-item">
-                <h3>Address</h3>
-                <p>{complete_address}</p> <!-- Company Website -->
-              </div>
-            </div>
-          </div>
-        </section>        
+     
           {galleries_2}
 
         <!-- YouTube Video Embed Section -->
       <section id="youtubeVideoSection" class="youtube-video-section">
-          <h3 class="feature-title">Our YouTube Video</h3>
+          <h2 class="feature-title">Our YouTube Video</h2>
           <div class="youtube-video-embed">
               <iframe width="560" height="315" src="{youtube_video_url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           </div>
       </section>       
 
       <section id="mapsection" class="map-location-section">
-          <h3 class="feature-title">Find Us On Map</h3>
+          <h2 class="feature-title">Find Us On Map</h2>
           <div class="google-maps-embed">
               {google_map_src}
           </div>
