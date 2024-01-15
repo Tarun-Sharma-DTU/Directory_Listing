@@ -55,7 +55,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     print(youtube_url)
     # Processing company hours
     company_hours = company_hours_raw.split('\n') if company_hours_raw else []
-    hours_html = "".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
+    hours_html = "".join(f"<span><i class='fas fa-clock'></i> {day}</span><br>" for day in company_hours)
     # Processing gallery images
     galleries = ""
     if gallery_image_urls:
