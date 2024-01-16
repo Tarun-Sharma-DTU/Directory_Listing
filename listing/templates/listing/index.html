@@ -20,8 +20,11 @@
             <button type="button" id="startProcess" class="btn btn-primary" style="background-color: #a453ca;">Start Posting</button>
         </div>
         <div class="col">
-            <button type="button" id="stopProcess" class="btn btn-danger">Stop Process</button>
+            <button type="button" id="stopProcess" class="btn btn-danger mt-4">Stop Process</button>
         </div>
+    </div>
+    <div>
+        <a href="{% url 'download_excel' %}" class="btn btn-success">Download Latest Report</a>
     </div>
 </form>
     <script>
@@ -56,34 +59,42 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.task_ids) {
+                    if (data.task_ids && data.task_ids.length > 0) {
                         console.log("Received task IDs:", data.task_ids);
+                        let completedTasks = 0;
                         data.task_ids.forEach(taskId => {
-                            checkTaskStatus(taskId);
+                            checkTaskStatus(taskId, () => {
+                                completedTasks++;
+                                if (completedTasks === data.task_ids.length) {
+                                    // All tasks are completed
+                                    alert("All tasks have been completed.");
+                                    fetchGeneratedLinks();
+                                }
+                            });
                         });
-                        setTimeout(fetchGeneratedLinks, 2000); // Adjust the delay as needed
                     } else {
                         console.error('Form submission did not return task IDs');
                     }
                 })
                 .catch(error => console.error('Error:', error));
             });
+
         
-            function checkTaskStatus(taskId) {
+            function checkTaskStatus(taskId, onComplete) {
                 fetch(`/get-task-result/${taskId}/`)
                     .then(response => response.json())
                     .then(data => {
                         console.log(`Status for task ${taskId}:`, data);
                         if (data.status === 'SUCCESS') {
                             addLinkToTable(data.url);
+                            onComplete(); // Call onComplete when a task is successful
                         } else if (data.status === 'PENDING') {
-                            setTimeout(() => checkTaskStatus(taskId), 2000); // Check again after 2 seconds
+                            setTimeout(() => checkTaskStatus(taskId, onComplete), 2000); // Check again after 2 seconds
                         }
                         // Handle failure case as needed
                     })
                     .catch(error => console.error('Error:', error));
             }
-        
             function addLinkToTable(url) {
                 let tableBody = document.querySelector('#linksTable tbody');
                 console.log("Current row count before adding:", tableBody.rows.length); // For debugging

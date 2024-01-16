@@ -44,6 +44,13 @@ def stop_process(request):
 @login_required
 def home(request):
     if request.method == 'POST' and 'excel_file' in request.FILES:
+        # File path for the existing Excel file
+        existing_file_path = os.path.join(settings.MEDIA_ROOT, 'generated_links.xlsx')
+
+        # Check if the file exists and delete it
+        if os.path.exists(existing_file_path):
+            os.remove(existing_file_path)
+
         site_number = int(request.POST.get('site_number'))
         excel_file = request.FILES['excel_file']
         wb = openpyxl.load_workbook(excel_file, data_only=True)
@@ -91,16 +98,12 @@ def get_task_result(request, task_id):
     else:
         return JsonResponse({'status': 'PENDING'})
 
+
 @login_required
 def get_generated_links_json(request):
-    links = GeneratedURL.objects.filter(user=request.user).order_by('-created_at').values_list('url', flat=True)
-    return JsonResponse({'links': list(links)})
-
-@login_required
-def get_generated_links(request):
     # Fetch links from the database
-    links = GeneratedURL.objects.filter(user=request.user).order_by('-created_at')
-
+    links = GeneratedURL.objects.filter(user=request.user).order_by('-created_at').values_list('url', flat=True)
+    
     # Create an Excel workbook and sheet
     workbook = openpyxl.Workbook()
     sheet = workbook.active
@@ -110,19 +113,70 @@ def get_generated_links(request):
     sheet['A1'] = 'URL'
 
     # Fill the sheet with URLs
-    for row, link in enumerate(links, start=2):  # Start from row 2 to leave the header
-        sheet[f'A{row}'] = link.url
+    for row, url in enumerate(links, start=2):  # Start from row 2 to leave the header
+        sheet[f'A{row}'] = url
 
-    # Prepare response with content type of Excel file
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    )
-    response['Content-Disposition'] = 'attachment; filename="generated_links.xlsx"'
+    # Define file path
+    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_links.xlsx')
 
-    # Save workbook to response
-    workbook.save(response)
+    try:
+        # Save workbook to the defined file path
+        workbook.save(file_path)
+        logger.info(f"Excel file successfully saved at {file_path}")
+    except Exception as e:
+        logger.error(f"Error saving Excel file: {e}", exc_info=True)
+        return JsonResponse({'error': 'Failed to create Excel file'})
 
-    return response
+    # Construct URL to the saved file
+    file_url = request.build_absolute_uri(settings.MEDIA_URL + 'generated_links.xlsx')
+
+    # Return JSON response with links and file URL
+    return JsonResponse({'links': list(links), 'excel_file_url': file_url})
+
+@login_required
+def download_excel(request):
+    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_links.xlsx')
+    return FileResponse(open(file_path, 'rb'), as_attachment=True, filename='generated_links.xlsx')
+
+
+@login_required
+def get_django_messages(request):
+    messages_list = []
+    for message in messages.get_messages(request):
+        messages_list.append({
+            "level": message.level,
+            "message": message.message,
+            "tags": message.tags,
+        })
+    return JsonResponse(messages_list, safe=False)
+
+# @login_required
+# def get_generated_links(request):
+#     # Fetch links from the database
+#     links = GeneratedURL.objects.filter(user=request.user).order_by('-created_at')
+
+#     # Create an Excel workbook and sheet
+#     workbook = openpyxl.Workbook()
+#     sheet = workbook.active
+#     sheet.title = 'Generated Links'
+
+#     # Adding header
+#     sheet['A1'] = 'URL'
+
+#     # Fill the sheet with URLs
+#     for row, link in enumerate(links, start=2):  # Start from row 2 to leave the header
+#         sheet[f'A{row}'] = link.url
+
+#     # Define file path
+#     file_path = os.path.join(settings.MEDIA_ROOT, 'generated_links.xlsx')
+
+#     # Save workbook to the defined file path
+#     workbook.save(file_path)
+
+#     # Construct URL to the saved file
+#     file_url = request.build_absolute_uri(settings.MEDIA_URL + 'generated_links.xlsx')
+
+#     return JsonResponse({'file_url': file_url})
 
 
 

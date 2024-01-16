@@ -167,7 +167,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         # Create the enclosing <div> for the buttons
         social_media_buttons = f'<section class="section-wrap" id="socialMediaLinks"><h2 class="feature-title">Digital & Online Presence</h2><div class="social-presence"><ul><li class="social-action"><div class="btn-group">\n{social_media_buttons}\n</div></li></ul></div></section>'
     
-    
+    hours_html_2 = "".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
     html_2 = f"""<!-- wp:html -->
     <div class="business-profile">
         <section class="navigation-menu">
@@ -219,7 +219,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
                   <h2 class="section-title">Opening Hours</h2>
                   <div class="hours-list">
                       <!-- Insert the generated HTML here -->
-                      {hours_html}
+                      {hours_html_2}
                   </div>
               </div>
           </section>
