@@ -53,6 +53,15 @@ def home(request):
 
         site_number = int(request.POST.get('site_number'))
         excel_file = request.FILES['excel_file']
+        api_configs_count = APIConfig.objects.filter(site_enable=True).count()
+
+        # Check if there are enough websites to process the request
+        if api_configs_count < site_number:
+            return JsonResponse({
+                'error': 'Not enough websites to run the requested number of tasks.',
+                'api_configs_count': api_configs_count,
+            }, status=400)
+        
         # Read the checkbox for avoiding duplication
         avoid_duplication = 'avoid_duplication' in request.POST
         wb = openpyxl.load_workbook(excel_file, data_only=True)
@@ -65,46 +74,50 @@ def home(request):
         GeneratedURL.objects.filter(user=request.user).delete()
         task_ids = []
         delay_seconds = 0  # initial delay
-
         processed_sites_count = 0
         api_configs_iterator = iter(api_configs)
 
         while processed_sites_count < site_number:
             try:
                 api_config = next(api_configs_iterator)
+
+                # Perform the duplication check only if avoid_duplication is True
+                if avoid_duplication:
+                    website_data = WebsiteData.objects.filter(api_config=api_config).first()
+                    if website_data:
+                        existing_company_names = json.loads(website_data.company_names) if website_data.company_names else []
+                        if company_name in existing_company_names:
+                            # Skip if company name exists and add a placeholder task
+                            task_ids.append('skipped_task_' + str(processed_sites_count))
+                            processed_sites_count += 1
+                            continue
+
+                # Process the api_config since the company_name doesn't exist in WebsiteData
+                website = api_config.website.rstrip('/')
+                json_url = f"https://{website}/wp-json/wp/v2"
+                task = create_company_profile_post.apply_async(
+                    args=[row_values, json_url, api_config.website, api_config.user, api_config.password, api_config.template_no],
+                    countdown=delay_seconds
+                )
+                task_ids.append(task.id)
+                delay_seconds += 2  # Increment the delay for the next task
+
             except StopIteration:
-                # No more API configurations to process
-                break
-
-            if request.session.get('stop_signal', False):
-                break
-
-            # Perform the duplication check only if avoid_duplication is True
-            if avoid_duplication:
-                website_data = WebsiteData.objects.filter(api_config=api_config).first()
-                if website_data:
-                    existing_company_names = json.loads(website_data.company_names) if website_data.company_names else []
-                    if company_name in existing_company_names:
-                        continue  # Skip if company name exists
-
-
-            # Process the api_config since the company_name doesn't exist in WebsiteData
-            website = api_config.website.rstrip('/')
-            json_url = f"https://{website}/wp-json/wp/v2"
-            task = create_company_profile_post.apply_async(
-                args=[row_values, json_url, api_config.website, api_config.user, api_config.password, api_config.template_no],
-                countdown=delay_seconds
-            )
-            task_ids.append(task.id)
-            delay_seconds += 2  # Increment the delay for the next task
+                # If no more API configurations to process, add a placeholder task ID
+                task_ids.append('placeholder_task_' + str(processed_sites_count))
+            
             processed_sites_count += 1  # Increment the count of processed sites
 
         return JsonResponse({'task_ids': task_ids})
+
 
     return render(request, "listing/index.html")
 
 @login_required
 def get_task_result(request, task_id):
+    # Return immediately for skipped tasks
+    if 'skipped_task_' in task_id:
+        return JsonResponse({'status': 'SKIPPED'})
     task_result = AsyncResult(task_id)
     if task_result.ready():
         try:
@@ -214,7 +227,7 @@ def site_data(request):
 
 
 def get_api_config_data(request):
-    data = list(APIConfig.objects.values('websites', 'user', 'password', 'template_no'))
+    data = list(APIConfig.objects.values('website', 'user', 'password', 'template_no'))
     return JsonResponse(data, safe=False)
 
 @require_http_methods(["GET", "POST"])

@@ -35,81 +35,94 @@
         <a href="{% url 'download_excel' %}" class="btn btn-success">Download Latest Report</a>
     </div>
 </form>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('startProcess').addEventListener('click', function(event) {
-            event.preventDefault(); 
-            let siteNumber = document.getElementById('site_number').value;
-            let excelFile = document.getElementById('excel_file').files.length;
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('startProcess').addEventListener('click', function(event) {
+                event.preventDefault();
+                let siteNumber = document.getElementById('site_number').value;
+                let excelFile = document.getElementById('excel_file').files.length;
 
-            if (excelFile === 0) {
-                alert('Please upload an Excel file.');
-                return;
-            }
-            
-            if (siteNumber === '' || isNaN(siteNumber) || parseInt(siteNumber) <= 0) {
-                alert('Please enter a valid site number.');
-                return;
-            }
+                if (excelFile === 0) {
+                    alert('Please upload an Excel file.');
+                    return;
+                }
 
-            clearTable();
-    
-            let form = document.getElementById('uploadForm');
-            let formData = new FormData(form);
-    
-            console.log("Form submitted, awaiting task IDs...");
-    
-            fetch('{% url "home" %}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.task_ids && data.task_ids.length > 0) {
-                    console.log("Received task IDs:", data.task_ids);
-                    let completedTasks = 0;
-                    let failedTasks = 0;
-                    data.task_ids.forEach(taskId => {
-                        checkTaskStatus(taskId, (status) => {
-                            if (status === 'SUCCESS') {
-                                completedTasks++;
-                            } else {
-                                // Increment failedTasks for 'FAILURE' or 'ERROR'
-                                failedTasks++;
-                            }
-                            
-                            // Check if all tasks have been processed
+                if (siteNumber === '' || isNaN(siteNumber) || parseInt(siteNumber) <= 0) {
+                    alert('Please enter a valid site number.');
+                    return;
+                }
+
+                clearTable();
+
+                let form = document.getElementById('uploadForm');
+                let formData = new FormData(form);
+
+                console.log("Form submitted, awaiting task IDs...");
+
+                fetch('{% url "home" %}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {  // Check if the response status is not OK (e.g., 400, 500)
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Server responded with an error.');  // Throw an error with the server's error message
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.task_ids && data.task_ids.length > 0) {
+                        console.log("Received task IDs:", data.task_ids);
+
+                        let taskPromises = data.task_ids.map(taskId => {
+                            return new Promise(resolve => {
+                                checkTaskStatus(taskId, resolve);
+                            });
+                        });
+
+                        Promise.all(taskPromises).then(statuses => {
+                            let completedTasks = statuses.filter(status => status === 'SUCCESS' || status === 'SKIPPED').length;
+                            let failedTasks = statuses.length - completedTasks;
+
                             if (completedTasks + failedTasks === data.task_ids.length) {
-                                alert("All tasks have been processed.");
+                                alert("All tasks have been processed, including skipped ones.");
                                 fetchGeneratedLinks();
                             }
                         });
-                    });
-                } else {
-                    console.error('Form submission did not return task IDs');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        });
-
-    
-        function checkTaskStatus(taskId, onComplete) {
-            fetch(`/get-task-result/${taskId}/`)
-                .then(response => response.json())
-                .then(data => {
-                    console.log(`Status for task ${taskId}:`, data);
-                    if (data.status === 'SUCCESS' || data.status === 'FAILURE' || data.status === 'ERROR') {
-                        if (data.status === 'SUCCESS') {
-                            addLinkToTable(data.url);
-                        }
-                        onComplete(data.status); // Call onComplete regardless of task status
-                    } else if (data.status === 'PENDING') {
-                        // If task is still pending, check again after a delay
-                        setTimeout(() => checkTaskStatus(taskId, onComplete), 2000);
+                    } else {
+                        console.error('Form submission did not return task IDs');
                     }
                 })
-                .catch(error => console.error('Error:', error));
-        }
+                .catch(error => 
+                alert(error.message));
+            });
+    
+                function checkTaskStatus(taskId, onComplete) {
+                    if (taskId.startsWith('skipped_task_')) {
+                        console.log(`Task ${taskId} is skipped.`);
+                        onComplete('SKIPPED');
+                        return;
+                    }
+
+                fetch(`/get-task-result/${taskId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(`Status for task ${taskId}:`, data);
+                        if (data.status === 'SUCCESS' || data.status === 'FAILURE' || data.status === 'ERROR') {
+                            if (data.status === 'SUCCESS') {
+                                addLinkToTable(data.url);
+                            }
+                            onComplete(data.status); // Call onComplete regardless of task status
+                        } else if (data.status === 'PENDING') {
+                            // If task is still pending, check again after a delay
+                            setTimeout(() => checkTaskStatus(taskId, onComplete), 2000);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
 
         function addLinkToTable(url) {
             let tableBody = document.querySelector('#linksTable tbody');
@@ -157,4 +170,3 @@
       </table>
       
 {% endblock %} 
-    

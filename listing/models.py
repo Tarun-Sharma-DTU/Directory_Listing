@@ -4,7 +4,7 @@ from django.conf import settings
 
 
 class APIConfig(models.Model):
-    website = models.CharField(max_length=255, null=True)
+    website = models.CharField(max_length=255, unique=True, null=True)
     user = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
     template_no = models.IntegerField(default=1)
