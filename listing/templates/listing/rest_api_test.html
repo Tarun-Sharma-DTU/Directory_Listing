@@ -13,7 +13,7 @@
         <div class="col-auto">
             <select name="api_url" id="site-dropdown" class="form-select">
                 {% for config in api_configs %}
-                    <option value="{{ config.url }}">{{ config.url }}</option>
+                    <option value="{{ config.website }}">{{ config.website }}</option>
                 {% endfor %}
             </select>
         </div>

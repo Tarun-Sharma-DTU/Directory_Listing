@@ -29,7 +29,7 @@ def sample_task():
   return 1
 
 @shared_task
-def create_company_profile_post(row_values, json_url, user, password, html_template):
+def create_company_profile_post(row_values, json_url, website, user, password, html_template):
     credentials = user + ':' + password
     token = base64.b64encode(credentials.encode())
     header = {'Authorization': 'Basic ' + token.decode('utf-8')}
@@ -168,81 +168,79 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         social_media_buttons = f'<section class="section-wrap" id="socialMediaLinks"><h2 class="feature-title">Digital & Online Presence</h2><div class="social-presence"><ul><li class="social-action"><div class="btn-group">\n{social_media_buttons}\n</div></li></ul></div></section>'
     
     hours_html_2 = "".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
-    html_2 = f"""<!-- wp:html -->
-    <div class="business-profile">
-        <section class="navigation-menu">
-          <div class="menu-links">
-            <a href="#companyOverview" class="link-item active">About Company</a>
-            <a href="#gallerySection" class="link-item">Gallery</a>
-            <a href="#socialMediaLinks" class="link-item">Social Media</a>
+    html_2 = f"""<!-- wp:html --><div class="business-profile">
+    <div class="navigation-menu">
+      <div class="menu-links">
+        <a href="#companyOverview" class="link-item active">About Company</a>
+        <a href="#gallerySection" class="link-item">Gallery</a>
+        <a href="#socialMediaLinks" class="link-item">Social Media</a>
+      </div>
+    </div>
+
+    <div id="companyOverview" class="profile-overview">
+        <div class="overview-content">
+          <h2 class="section-title">Business Overview</h2>
+          <div class="business-description">
+            <p>
+              {description}
+            </p>
           </div>
-        </section>
+          <div class="services-offered">
+            <h3 class="services-title">Services offered</h3>
+            <span>{services_offered}</span>
+          </div>
 
-
-          <section id="companyOverview" class="profile-overview">
-            <div class="overview-content">
-              <h2 class="section-title">Business Overview</h2> <!-- Business Description -->
-              <div class="business-description">
-                <p>
-                  {description}
-                </p>
-              </div>
-              <div class="services-offered">
-                <h3 class="services-title">Services offered</h3>
-                <span>{services_offered}</span>
-              </div>
-
-              <div class="additional-info">
-                <div class="info-item">
-                  <h3>Company Website</h3>
-                  <p><a href="{company_website}">{company_website}</a></p>
-                </div>
-                <div class="info-item">
-                  <h3>Company Phone Number</h3>
-                  <p><a href="{company_phone_number}">{company_phone_number}</a></p>
-                </div>
-                <div class="info-item">
-                  <h3>Company Email</h3>
-                  <p><a href="mailto:{contact_email}">{contact_email}</a></p>
-                </div>
-                <div class="info-item">
-                  <h3>Address</h3>
-                  <p>{complete_address}</p>
-                </div>
-              </div>
+          <div class="additional-info">
+            <div class="info-item">
+              <h3>Company Website</h3>
+              <p><a href="{company_website}">{company_website}</a></p>
             </div>
-          </section>
-
-          <!-- Opening Hours Section -->
-          <section class="opening-hours">
-              <div class="hours-content">
-                  <h2 class="section-title">Opening Hours</h2>
-                  <div class="hours-list">
-                      <!-- Insert the generated HTML here -->
-                      {hours_html_2}
-                  </div>
-              </div>
-          </section>
-     
-          {galleries_2}
-
-        <!-- YouTube Video Embed Section -->
-      <section id="youtubeVideoSection" class="youtube-video-section">
-          <h2 class="feature-title">Our YouTube Video</h2>
-          <div class="youtube-video-embed">
-              <iframe width="560" height="315" src="{youtube_video_url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <div class="info-item">
+              <h3>Company Phone Number</h3>
+              <p><a href="{company_phone_number}">{company_phone_number}</a></p>
+            </div>
+            <div class="info-item">
+              <h3>Company Email</h3>
+              <p><a href="mailto:{contact_email}">{contact_email}</a></p>
+            </div>
+            <div class="info-item">
+              <h3>Address</h3>
+              <p>{complete_address}</p>
+            </div>
           </div>
-      </section>       
+        </div>
+    </div>
 
-      <section id="mapsection" class="map-location-section">
-          <h2 class="feature-title">Find Us On Map</h2>
-          <div class="google-maps-embed">
-              {google_map_src}
-          </div>
-      </section>
+    <!-- Opening Hours Section -->
+    <div class="opening-hours">
+        <div class="hours-content">
+            <h2 class="section-title">Opening Hours</h2>
+            <div class="hours-list">
+                {hours_html_2}
+            </div>
+        </div>
+    </div>
 
-        {social_media_buttons} 
-              </div><!-- /wp:html -->"""
+    {galleries_2}
+
+    <!-- YouTube Video Embed Section -->
+    <div id="youtubeVideoSection" class="youtube-video-section">
+        <h2 class="feature-title">Our YouTube Video</h2>
+        <div class="youtube-video-embed">
+            <iframe width="560" height="315" src="{youtube_video_url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <div id="mapsection" class="map-location-section">
+        <h2 class="feature-title">Find Us On Map</h2>
+        <div class="google-maps-embed">
+            {google_map_src}
+        </div>
+    </div>
+
+    {social_media_buttons} 
+</div>
+<!-- /wp:html -->"""
     
     html_img_tags = ""
     # Split the URLs and remove any leading/trailing whitespace
@@ -408,7 +406,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
     post = {
         'title': company_name,
         'slug': company_name,
-        'status': 'publish',
+        'status': 'draft',
         'content': final_content,
         # 'categories': 11,   # Uncomment and use as needed
         # 'featured_media': image_id  # Uncomment and use as needed
@@ -423,7 +421,7 @@ def create_company_profile_post(row_values, json_url, user, password, html_templ
         draft_post_link = json_data.get('link', None)
         logger.info(f"Task completed successfully with URL: {draft_post_link}")
 
-        return draft_post_link
+        return draft_post_link, website, company_name 
     except Exception as e:
         logger.error(f"Task failed: {e}")
         raise e
@@ -469,11 +467,11 @@ def perform_test_task(self, config_id):
         config = APIConfig.objects.get(id=config_id)
         
         # Mocking the test function behavior
-        response = test_post_to_wordpress(config.url, config.user, config.password, "Test Content")
-        if response.status_code in [200, 201]:
+        response = test_post_to_wordpress(config.website, config.user, config.password, "Test Content")
+        if response.status_code in [201]:
             response_data = response.json()
             post_id = response_data.get('id')
-            delete_response = delete_from_wordpress(config.url, config.user, config.password, post_id)
+            delete_response = delete_from_wordpress(config.website, config.user, config.password, post_id)
             
             if delete_response is not None and delete_response.status_code == 200:
                 result = 'Success'

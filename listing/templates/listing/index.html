@@ -15,6 +15,14 @@
             <input type="number" class="form-control" name="site_number" id="site_number" placeholder="Enter Site Number">
         </div>
     </div>
+    <div class="col-md-3 mt-3">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="" id="avoidDuplication" name="avoid_duplication">
+            <label class="form-check-label" for="avoidDuplication">
+                Avoid Duplication Business Name
+            </label>
+        </div>
+    </div>
     <div class="row mt-3">
         <div class="col">
             <button type="button" id="startProcess" class="btn btn-primary" style="background-color: #a453ca;">Start Posting</button>
@@ -27,104 +35,113 @@
         <a href="{% url 'download_excel' %}" class="btn btn-success">Download Latest Report</a>
     </div>
 </form>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('startProcess').addEventListener('click', function(event) {
-                event.preventDefault(); 
-                let siteNumber = document.getElementById('site_number').value;
-                let excelFile = document.getElementById('excel_file').files.length;
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('startProcess').addEventListener('click', function(event) {
+            event.preventDefault(); 
+            let siteNumber = document.getElementById('site_number').value;
+            let excelFile = document.getElementById('excel_file').files.length;
 
-                if (excelFile === 0) {
-                    alert('Please upload an Excel file.');
-                    event.preventDefault();  // Prevent the form from submitting
-                    return;
-                }
-                
-                if (siteNumber === '' || isNaN(siteNumber) || parseInt(siteNumber) <= 0) {
-                    alert('Please enter a valid site number.');
-                    event.preventDefault();  // Prevent the form from submitting
-                    return;
-                }
+            if (excelFile === 0) {
+                alert('Please upload an Excel file.');
+                return;
+            }
+            
+            if (siteNumber === '' || isNaN(siteNumber) || parseInt(siteNumber) <= 0) {
+                alert('Please enter a valid site number.');
+                return;
+            }
 
-                clearTable();
-        
-                let form = document.getElementById('uploadForm');
-                let formData = new FormData(form);
-        
-                console.log("Form submitted, awaiting task IDs...");
-        
-                fetch('{% url "home" %}', {
-                    method: 'POST',
-                    body: formData
-                })
+            clearTable();
+    
+            let form = document.getElementById('uploadForm');
+            let formData = new FormData(form);
+    
+            console.log("Form submitted, awaiting task IDs...");
+    
+            fetch('{% url "home" %}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.task_ids && data.task_ids.length > 0) {
+                    console.log("Received task IDs:", data.task_ids);
+                    let completedTasks = 0;
+                    let failedTasks = 0;
+                    data.task_ids.forEach(taskId => {
+                        checkTaskStatus(taskId, (status) => {
+                            if (status === 'SUCCESS') {
+                                completedTasks++;
+                            } else {
+                                // Increment failedTasks for 'FAILURE' or 'ERROR'
+                                failedTasks++;
+                            }
+                            
+                            // Check if all tasks have been processed
+                            if (completedTasks + failedTasks === data.task_ids.length) {
+                                alert("All tasks have been processed.");
+                                fetchGeneratedLinks();
+                            }
+                        });
+                    });
+                } else {
+                    console.error('Form submission did not return task IDs');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+    
+        function checkTaskStatus(taskId, onComplete) {
+            fetch(`/get-task-result/${taskId}/`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.task_ids && data.task_ids.length > 0) {
-                        console.log("Received task IDs:", data.task_ids);
-                        let completedTasks = 0;
-                        data.task_ids.forEach(taskId => {
-                            checkTaskStatus(taskId, () => {
-                                completedTasks++;
-                                if (completedTasks === data.task_ids.length) {
-                                    // All tasks are completed
-                                    alert("All tasks have been completed.");
-                                    fetchGeneratedLinks();
-                                }
-                            });
-                        });
-                    } else {
-                        console.error('Form submission did not return task IDs');
+                    console.log(`Status for task ${taskId}:`, data);
+                    if (data.status === 'SUCCESS' || data.status === 'FAILURE' || data.status === 'ERROR') {
+                        if (data.status === 'SUCCESS') {
+                            addLinkToTable(data.url);
+                        }
+                        onComplete(data.status); // Call onComplete regardless of task status
+                    } else if (data.status === 'PENDING') {
+                        // If task is still pending, check again after a delay
+                        setTimeout(() => checkTaskStatus(taskId, onComplete), 2000);
                     }
                 })
                 .catch(error => console.error('Error:', error));
-            });
+        }
 
-        
-            function checkTaskStatus(taskId, onComplete) {
-                fetch(`/get-task-result/${taskId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(`Status for task ${taskId}:`, data);
-                        if (data.status === 'SUCCESS') {
-                            addLinkToTable(data.url);
-                            onComplete(); // Call onComplete when a task is successful
-                        } else if (data.status === 'PENDING') {
-                            setTimeout(() => checkTaskStatus(taskId, onComplete), 2000); // Check again after 2 seconds
-                        }
-                        // Handle failure case as needed
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-            function addLinkToTable(url) {
-                let tableBody = document.querySelector('#linksTable tbody');
-                console.log("Current row count before adding:", tableBody.rows.length); // For debugging
-                let row = tableBody.insertRow();
-                let cellNumber = row.insertCell(0);
-                let cellLink = row.insertCell(1);
-                cellNumber.textContent = tableBody.rows.length; // This should now be the new row count after insertion
-                cellLink.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
-            }
-                    
-            function fetchGeneratedLinks() {
-                fetch('/get-generated-links-json/')
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log("Fetched links:", data.links);
-                        let tableBody = document.querySelector('#linksTable tbody');
-                        tableBody.innerHTML = ''; // Clear the table before adding new rows
-                        data.links.forEach((url, index) => {
-                            addLinkToTable(url);
-                        });
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-        
-            function clearTable() {
-                let tableBody = document.querySelector('#linksTable tbody');
-                tableBody.innerHTML = ''; // Clear the table
-            }
-        });
-        </script>
+        function addLinkToTable(url) {
+            let tableBody = document.querySelector('#linksTable tbody');
+            console.log("Current row count before adding:", tableBody.rows.length); // For debugging
+            let row = tableBody.insertRow();
+            let cellNumber = row.insertCell(0);
+            let cellLink = row.insertCell(1);
+            cellNumber.textContent = tableBody.rows.length; // This should now be the new row count after insertion
+            cellLink.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
+        }
+                
+        function fetchGeneratedLinks() {
+            fetch('/get-generated-links-json/')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Fetched links:", data.links);
+                    let tableBody = document.querySelector('#linksTable tbody');
+                    tableBody.innerHTML = ''; // Clear the table before adding new rows
+                    data.links.forEach((url, index) => {
+                        addLinkToTable(url);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    
+        function clearTable() {
+            let tableBody = document.querySelector('#linksTable tbody');
+            tableBody.innerHTML = ''; // Clear the table
+        }
+    });
+</script>
+
         
         
     <table id="linksTable" class="table">
