@@ -271,40 +271,30 @@ def rest_api_test(request):
     # Render the page with context
     return render(request, 'listing/rest_api_test.html', context)
 
+
 def test_status_update(request):
-    test_all = 'test_all' in request.POST
+    # test_all = 'test_all' in request.POST
+    # print(test_all)
+    # print("Checking if 'test_all' is triggered")
+
     # Fetch test results and prepare the context
     test_results = TestResult.objects.all()
     test_status = {result.config.website: result.status for result in test_results}
 
-    if test_all:
-        # Save failed URLs to an Excel file
-        failed_urls = []
+    failed_urls = [(url, status.split(":")[1].strip()) for url, status in test_status.items() if 'Failed' in status]
+        
 
-        for url, status in test_status.items():
-            if 'Failed' in status:
-                failed_urls.append((url, status.split(":")[1].strip()))
-
-        if failed_urls:
-            # Create or update the Excel file
-            excel_file = 'failed_tests.xlsx'
-
-        if os.path.exists(excel_file):
-            existing_data = pd.read_excel(excel_file)
-            
-            new_failed_urls = []
-            for url, status in failed_urls:
-                if url not in existing_data['URL'].values:
-                    new_failed_urls.append((url, status))
-
-            new_data = pd.DataFrame(new_failed_urls, columns=['URL', 'Status'])
-                
-            updated_data = pd.concat([existing_data, new_data], ignore_index=True)
-
-            updated_data.to_excel(excel_file, index=False)
-        else:
+    if failed_urls:
+        try:
+            excel_file = os.path.join(settings.BASE_DIR, 'failed_tests.xlsx')
+            logger.info(f"Creating Excel file at: {excel_file}")
             new_data = pd.DataFrame(failed_urls, columns=['URL', 'Status'])
             new_data.to_excel(excel_file, index=False)
+        except Exception as e:
+            logger.error(f"Error while creating Excel file: {e}")
+    else:
+            logger.info("No failed URLs to save")
+        
 
     return JsonResponse(test_status)
 
@@ -343,7 +333,8 @@ def perform_test(request, config):
 def download_file(request):
     file_name = 'failed_tests.xlsx'
     file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), file_name)
-    print(file_path)
+    print(f"File path in download_file: {file_path}")  # Print the file path
+
 
     if os.path.exists(file_path):
         # Serve the file directly using FileResponse, which will handle the file opening
