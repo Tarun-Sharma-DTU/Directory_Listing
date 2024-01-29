@@ -9,17 +9,24 @@ logger = get_task_logger(__name__)
 
 
 def convert_to_embed_url(youtube_url):
+    # Return an empty string if the input URL is blank
+    if not youtube_url:
+        return ""
+
     # Check if the URL is already an embed URL
     if "youtube.com/embed/" in youtube_url:
         return youtube_url  # It's already an embed URL, no change needed
+
     # Check if the URL is a valid watch URL and extract the video ID
     elif "watch?v=" in youtube_url:
         video_id = youtube_url.split('watch?v=')[-1]
         # Create the embed URL with the extracted video ID
         embed_url = f"https://www.youtube.com/embed/{video_id}"
         return embed_url
+
     else:
         return "Invalid YouTube URL"
+
 
 
 
@@ -66,6 +73,50 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
             <div class="gallery">{gallery_images_html}</div>
           </div>"""
 
+    if youtube_video_url:
+        youtube_template_1 = """<div class="company-info">
+            <h2>Watch Our Video</h2>
+            <iframe src="{youtube_video_url}" style="width: 65%; height: 400px;" allowfullscreen></iframe>
+          </div>"""
+    else:
+      youtube_template_1 = ""
+
+
+    linkedin_link_html_1 = ""
+    facebook_link_html_1 = ""
+    twitter_link_html_1 = ""
+    youtube_link_html_1 = ""
+
+    if linkedin_url:
+        linkedin_link_html_1 = """<a href="{linkedin_url}" target="_blank" rel="noopener"><i class="fab fa-linkedin-in"></i></a>"""
+    else:
+        linkedin_link_html_1 = ""
+    if facebook_url:
+        facebook_link_html_1 = """<a href="{facebook_url}" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>"""
+    else:
+        facebook_link_html_1= ""
+    if twitter_url:
+        twitter_link_html_1 = """<a href="{twitter_url}" target="_blank" rel="noopener"><i class="fab fa-twitter"></i></a>"""
+    else:
+        twitter_link_html_1 = ""
+    if youtube_url:
+        youtube_link_html_1 = """<a href="{youtube_url}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i></a>"""
+    else:
+        youtube_link_html_1 = ""
+
+    if not (linkedin_url or facebook_url or twitter_url or youtube_url):
+        social_template_1 = ""
+    else:
+        social_template_1 = """<div class="company-info">
+            <h2>Connect With Us</h2>
+            <div class="social-media">
+             {linkedin_link_html_1}
+             {facebook_link_html_1}
+             {twitter_link_html_1}
+             {youtube_link_html_1}
+            </div>
+          </div>"""
+        
     # Constructing the HTML content
     html_1 = f"""<!-- wp:html --><div class="container">
           <div class="company-profile-header">
@@ -97,20 +148,10 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
             <p>{services_offered}</p>
           </div>
             {galleries}
-          <div class="company-info">
-            <h2>Watch Our Video</h2>
-            <iframe src="{youtube_video_url}" style="width: 65%; height: 400px;" allowfullscreen></iframe>
-          </div>
 
-          <div class="company-info">
-            <h2>Connect With Us</h2>
-            <div class="social-media">
-              <a href="{linkedin_url}" target="_blank" rel="noopener"><i class="fab fa-linkedin-in"></i></a>
-              <a href="{facebook_url}" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>
-              <a href="{twitter_url}" target="_blank" rel="noopener"><i class="fab fa-twitter"></i></a>
-              <a href="{youtube_url}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i></a>
-            </div>
-          </div>
+         {youtube_template_1}
+        {social_template_1}
+          
 
         </div><!-- /wp:html -->"""
     
@@ -168,6 +209,18 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
         social_media_buttons = f'<section class="section-wrap" id="socialMediaLinks"><h2 class="feature-title">Digital & Online Presence</h2><div class="social-presence"><ul><li class="social-action"><div class="btn-group">\n{social_media_buttons}\n</div></li></ul></div></section>'
     
     hours_html_2 = "".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
+
+    if youtube_video_url:
+        youtube_template_2 = """<!-- YouTube Video Embed Section -->
+    <div id="youtubeVideoSection" class="youtube-video-section">
+        <h2 class="feature-title">Our YouTube Video</h2>
+        <div class="youtube-video-embed">
+            <iframe width="560" height="315" src="{youtube_video_url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+    </div>"""
+    else:
+        youtube_template_2 = ""
+
     html_2 = f"""<!-- wp:html --><div class="business-profile">
     <div class="navigation-menu">
       <div class="menu-links">
@@ -223,13 +276,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
 
     {galleries_2}
 
-    <!-- YouTube Video Embed Section -->
-    <div id="youtubeVideoSection" class="youtube-video-section">
-        <h2 class="feature-title">Our YouTube Video</h2>
-        <div class="youtube-video-embed">
-            <iframe width="560" height="315" src="{youtube_video_url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        </div>
-    </div>
+    {youtube_template_2}
 
     <div id="mapsection" class="map-location-section">
         <h2 class="feature-title">Find Us On Map</h2>
@@ -285,6 +332,22 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     else:
         twitter_link_html_3 = ""
 
+    if youtube_video_url:
+        youtube_template_3 = """<div><ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube" type="button" role="tab" aria-controls="gallery" aria-selected="false">Youtube</button>
+      </li>
+    </ul>
+    </div>
+    <div class="tab-content" id="myTabContentYoutube">
+      <div class="tab-pane fade show active" id="youtube" role="tabpanel" aria-labelledby="youtube-tab">
+          <div class="youtube-embed">
+            <iframe width="100%" height="auto" src="{youtube_video_url}" frameborder="0" allowfullscreen></iframe>
+          </div>
+      </div>
+  </div>"""
+    else:
+        youtube_template_3 = ""
 
     html_3 = f"""<!-- wp:html --><div class="profile-box">
     <div class="container">
@@ -367,19 +430,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
               </div>
             </div>  
           </div>
-      <div><ul class="nav nav-tabs" id="myTab" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube" type="button" role="tab" aria-controls="gallery" aria-selected="false">Youtube</button>
-      </li>
-    </ul>
-    </div>
-    <div class="tab-content" id="myTabContentYoutube">
-      <div class="tab-pane fade show active" id="youtube" role="tabpanel" aria-labelledby="youtube-tab">
-          <div class="youtube-embed">
-            <iframe width="100%" height="auto" src="{youtube_video_url}" frameborder="0" allowfullscreen></iframe>
-          </div>
-      </div>
-  </div>                 
+    {youtube_template_3}            
     </div>
     <div class="col-12 col-md-6 col-lg-6 col-xl-3 float-left">
       <aside id="dc-sidebar" class="dc-sidebar dc-sidebar-grid float-left mt-xl-0">
@@ -388,15 +439,14 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
       </div>							
     <div class="dc-contactinfobox dc-locationbox">
                 <ul class="dc-contactinfo">
-                                     <li class="dcuser-location">
+                    <li class="dcuser-location">
                     <i class="lnr lnr-location"></i>
-                        <address>{complete_address}</address>
+                        {complete_address}
                     </li>
                         <li class="dcuser-screen">
                         <i class="lnr lnr-screen"></i>
                         <span><a href="{company_website}" target="_blank" data-wpel-link="external" rel="external noopener noreferrer">{company_website}</a></span>
-                    </li>
-                        
+                    </li>                        
                     </ul>
     </div>
         
