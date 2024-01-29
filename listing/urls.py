@@ -19,6 +19,9 @@ urlpatterns = [
     path('get-generated-links-json/', views.get_generated_links_json, name='get-generated-links-json'),
     path('download-failed-tests/', views.download_file, name='download_failed_tests'),
     path('download-excel/', views.download_excel, name='download_excel'),
+    path('list-files/', views.list_files, name='list_files'),
+    path('download-file/', views.download_file, name='download_file'),
+    path('delete-all-files/', views.delete_all_files, name='delete_all_files'),
 
 
 

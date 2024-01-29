@@ -365,9 +365,21 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
               <div class="gallery">
                 {gallery_images_html_3}
               </div>
-            </div>    
-            
-          </div>                   
+            </div>  
+          </div>
+      <div><ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube" type="button" role="tab" aria-controls="gallery" aria-selected="false">Youtube</button>
+      </li>
+    </ul>
+    </div>
+    <div class="tab-content" id="myTabContentYoutube">
+      <div class="tab-pane fade show active" id="youtube" role="tabpanel" aria-labelledby="youtube-tab">
+          <div class="youtube-embed">
+            <iframe width="100%" height="auto" src="{youtube_video_url}" frameborder="0" allowfullscreen></iframe>
+          </div>
+      </div>
+  </div>                 
     </div>
     <div class="col-12 col-md-6 col-lg-6 col-xl-3 float-left">
       <aside id="dc-sidebar" class="dc-sidebar dc-sidebar-grid float-left mt-xl-0">
@@ -406,7 +418,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     post = {
         'title': company_name,
         'slug': company_name,
-        'status': 'publish',
+        'status': 'draft',
         'content': final_content,
         # 'categories': 11,   # Uncomment and use as needed
         # 'featured_media': image_id  # Uncomment and use as needed
@@ -421,10 +433,13 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
         draft_post_link = json_data.get('link', None)
         logger.info(f"Task completed successfully with URL: {draft_post_link}")
 
-        return draft_post_link, website, company_name 
+        return draft_post_link, website, company_name, company_website
+      else:
+        logger.warning("Returning None due to non-201 response")
+        return None, website, company_name, company_website
     except Exception as e:
         logger.error(f"Task failed: {e}")
-        raise e
+        return None, website, company_name, company_website
 
 
 

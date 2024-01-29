@@ -11,10 +11,13 @@ from django.http import HttpResponse, JsonResponse
 from celery.result import AsyncResult
 import logging
 from django.views.decorators.http import require_http_methods
-from django.http import FileResponse, HttpResponseNotFound
+from django.http import FileResponse, HttpResponseNotFound,Http404
 from django.conf import settings
 import json
 import os
+import glob
+from urllib.parse import urlparse
+
 
 
 logger = logging.getLogger(__name__)
@@ -41,34 +44,38 @@ def stop_process(request):
     request.session['stop_signal'] = True
     return JsonResponse({'status': 'stopped'})
 
+def get_root_domain(url):
+    parsed_url = urlparse(url)
+    domain_parts = parsed_url.netloc.split('.')
+    root_domain = '.'.join(domain_parts[-2:]) if len(domain_parts) > 1 else parsed_url.netloc
+    return root_domain
+
 @login_required
 def home(request):
     if request.method == 'POST' and 'excel_file' in request.FILES:
-        # File path for the existing Excel file
-        existing_file_path = os.path.join(settings.MEDIA_ROOT, 'generated_links.xlsx')
+        # Clear the session value
+        if 'uploaded_file_name' in request.session:
+            del request.session['uploaded_file_name']
 
-        # Check if the file exists and delete it
-        if os.path.exists(existing_file_path):
-            os.remove(existing_file_path)
+
+        excel_file = request.FILES['excel_file']
+        uploaded_file_name = excel_file.name  # Get the uploaded file's name
+        request.session['uploaded_file_name'] = uploaded_file_name  # Store the file name in the session
 
         site_number = int(request.POST.get('site_number'))
-        excel_file = request.FILES['excel_file']
         api_configs_count = APIConfig.objects.filter(site_enable=True).count()
 
-        # Check if there are enough websites to process the request
         if api_configs_count < site_number:
             return JsonResponse({
                 'error': 'Not enough websites to run the requested number of tasks.',
                 'api_configs_count': api_configs_count,
             }, status=400)
-        
-        # Read the checkbox for avoiding duplication
-        avoid_duplication = 'avoid_duplication' in request.POST
+
         wb = openpyxl.load_workbook(excel_file, data_only=True)
         sheet = wb.active
         second_row = sheet[2]
         row_values = [cell.value for cell in second_row]
-        company_name = row_values[0]  # Assuming the company name is always in the second row's first cell
+        company_website = row_values[3]
 
         api_configs = APIConfig.objects.filter(site_enable=True).order_by('?')
         GeneratedURL.objects.filter(user=request.user).delete()
@@ -77,21 +84,30 @@ def home(request):
         processed_sites_count = 0
         api_configs_iterator = iter(api_configs)
 
+        match_root_domain = 'match_root_domain' in request.POST
+
+
         while processed_sites_count < site_number:
             try:
                 api_config = next(api_configs_iterator)
 
-                # Perform the duplication check only if avoid_duplication is True
-                if avoid_duplication:
-                    website_data = WebsiteData.objects.filter(api_config=api_config).first()
-                    if website_data:
-                        existing_company_names = json.loads(website_data.company_names) if website_data.company_names else []
-                        if company_name in existing_company_names:
-                            # Skip if company name exists and add a placeholder task
-                            task_ids.append('skipped_task_' + str(processed_sites_count))
-                            processed_sites_count += 1
-                            continue
-
+                # Handle WebsiteData for duplication check
+                website_data, _ = WebsiteData.objects.get_or_create(api_config=api_config)
+                
+                # Check for existing company websites
+                existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
+                # Root domain matching based on checkbox state
+                if match_root_domain:
+                    new_company_website_root = get_root_domain(company_website)
+                    existing_roots = [get_root_domain(url) for url in existing_company_websites]
+                    if new_company_website_root in existing_roots:
+                        task_ids.append('skipped_task_' + str(processed_sites_count))
+                        continue
+                else:
+                    if company_website in existing_company_websites:
+                        task_ids.append('skipped_task_' + str(processed_sites_count))
+                        continue
+                           
                 # Process the api_config since the company_name doesn't exist in WebsiteData
                 website = api_config.website.rstrip('/')
                 json_url = f"https://{website}/wp-json/wp/v2"
@@ -108,48 +124,52 @@ def home(request):
             
             processed_sites_count += 1  # Increment the count of processed sites
 
-        return JsonResponse({'task_ids': task_ids})
-
+        return JsonResponse({'task_ids': task_ids})   
 
     return render(request, "listing/index.html")
 
 @login_required
 def get_task_result(request, task_id):
-    # Return immediately for skipped tasks
-    if 'skipped_task_' in task_id:
-        return JsonResponse({'status': 'SKIPPED'})
     task_result = AsyncResult(task_id)
     if task_result.ready():
         try:
-            url, website, company_name = task_result.result
+            url, website, company_name, company_website = task_result.result
             if url:
                 logger.info(f"URL saved to database: {url}")
                 GeneratedURL.objects.create(user=request.user, url=url)
+
                 # Retrieve or create WebsiteData for the website
                 api_config = APIConfig.objects.get(website=website)
                 website_data, created = WebsiteData.objects.get_or_create(api_config=api_config)
 
-                # Safely load company_names as JSON and ensure it's a list
-                try:
-                    existing_company_names = json.loads(website_data.company_names) if website_data.company_names else []
-                except json.JSONDecodeError:
-                    existing_company_names = []
-
-                # Add the new company name if it's not already in the list
+                # Handle company_names
+                existing_company_names = json.loads(website_data.company_names) if website_data.company_names else []
                 if company_name not in existing_company_names:
                     existing_company_names.append(company_name)
                     website_data.company_names = json.dumps(existing_company_names)
-                    website_data.save()
+
+                # Handle company_websites
+                existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
+                if company_website not in existing_company_websites and company_website != "":
+                    existing_company_websites.append(company_website)
+                    website_data.company_websites = json.dumps(existing_company_websites)
+
+                # Save the updated website_data
+                website_data.save()
 
                 return JsonResponse({'status': 'SUCCESS', 'url': url})
             else:
                 logger.warning("Task returned an empty URL.")
+                failure_url = f"{website} - Failed to Post in this Domain" if website else "Task Failed"
+                GeneratedURL.objects.create(user=request.user, url=failure_url)
                 return JsonResponse({'status': 'FAILURE', 'error': 'Empty URL'})
         except Exception as e:
-            logger.error(f"Error in get_task_result: {e}", exc_info=True)
+            logger.error(f"Error in get_task_result in {website}: {e}", exc_info=True)
             return JsonResponse({'status': 'ERROR', 'error': str(e)})
     else:
         return JsonResponse({'status': 'PENDING'})
+
+
 
 @login_required
 def get_generated_links_json(request):
@@ -159,17 +179,30 @@ def get_generated_links_json(request):
     # Create an Excel workbook and sheet
     workbook = openpyxl.Workbook()
     sheet = workbook.active
-    sheet.title = 'Generated Links'
+
+    uploaded_file_name = request.session.get('uploaded_file_name', 'Generated Links')
+    if uploaded_file_name:
+        # Extract the base file name without the extension
+        base_file_name, _ = os.path.splitext(uploaded_file_name)
+
+        # Sanitize the base file name
+        sanitized_base_name = ''.join(char for char in base_file_name if char.isalnum() or char in " -_")
+        sanitized_base_name = sanitized_base_name[:31]  # Excel sheet title cannot exceed 31 characters
+        sheet.title = sanitized_base_name
+
+        # Append '.xlsx' to create the final file name
+        file_name = sanitized_base_name + '.xlsx'
+    else:
+        file_name = 'generated_links.xlsx'
+
+    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', file_name)
 
     # Adding header
     sheet['A1'] = 'URL'
 
     # Fill the sheet with URLs
-    for row, url in enumerate(links, start=2):  # Start from row 2 to leave the header
+    for row, url in enumerate(links, start=2):
         sheet[f'A{row}'] = url
-
-    # Define file path
-    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_links.xlsx')
 
     try:
         # Save workbook to the defined file path
@@ -180,15 +213,32 @@ def get_generated_links_json(request):
         return JsonResponse({'error': 'Failed to create Excel file'})
 
     # Construct URL to the saved file
-    file_url = request.build_absolute_uri(settings.MEDIA_URL + 'generated_links.xlsx')
+    file_url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, 'generated_files', file_name))
 
     # Return JSON response with links and file URL
     return JsonResponse({'links': list(links), 'excel_file_url': file_url})
 
+
+
 @login_required
 def download_excel(request):
-    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_links.xlsx')
-    return FileResponse(open(file_path, 'rb'), as_attachment=True, filename='generated_links.xlsx')
+    # Retrieve the filename from the session
+    uploaded_file_name = request.session.get('uploaded_file_name', 'generated_links.xlsx')
+
+    # Check if the file name already ends with '.xlsx', if not, append it
+    if not uploaded_file_name.lower().endswith('.xlsx'):
+        uploaded_file_name += '.xlsx'
+
+    # Define the file path
+    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', uploaded_file_name)
+
+    # Check if the file exists
+    if os.path.exists(file_path):
+        # Serve the file
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=uploaded_file_name)
+    else:
+        # File not found
+        return HttpResponseNotFound('The requested file was not found on our server.')
 
 
 @login_required
@@ -221,8 +271,10 @@ def site_data(request):
                 }
             )
         
-        return HttpResponse("File uploaded and database updated.")
-    
+        # Add a success message
+        messages.success(request, "File uploaded and database updated.")
+        return redirect('site_data')  # Redirect to the same page
+
     return render(request, "listing/site_data.html")
 
 
@@ -342,4 +394,40 @@ def download_file(request):
     else:
         return HttpResponseNotFound('The requested file was not found on our server.')
         
-        
+
+def list_files(request):
+    media_subdir = os.path.join(settings.MEDIA_ROOT, 'generated_files')
+    files = [f for f in os.listdir(media_subdir) if f.endswith('.xlsx')]
+    return JsonResponse(files, safe=False)
+
+def download_file(request):
+    file_name = request.GET.get('file')  # Get the file name from request
+    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', file_name)
+
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as fh:
+            response = HttpResponse(fh.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+    raise Http404  # Return 404 if file not found
+
+def delete_all_files(request):
+    media_subdir = os.path.join(settings.MEDIA_ROOT, 'generated_files')
+    files = glob.glob(os.path.join(media_subdir, '*.xlsx'))
+    deleted_files, failed_files = [], []
+
+    for f in files:
+        try:
+            os.remove(f)
+            deleted_files.append(f)
+        except Exception as e:
+            failed_files.append((f, str(e)))
+
+    if failed_files:
+        # Return a response indicating which deletions failed
+        return JsonResponse({
+            'status': 'partial_success',
+            'deleted_files': deleted_files,
+            'failed_files': failed_files
+        })
+    return JsonResponse({'status': 'success', 'deleted_files': deleted_files})

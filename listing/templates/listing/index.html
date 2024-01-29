@@ -17,10 +17,8 @@
     </div>
     <div class="col-md-3 mt-3">
         <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="" id="avoidDuplication" name="avoid_duplication">
-            <label class="form-check-label" for="avoidDuplication">
-                Avoid Duplication Business Name
-            </label>
+            <input type="checkbox" id="match_root_domain" name="match_root_domain">
+            <label for="match_root_domain">Match Root Domain Only</label>
         </div>
     </div>
     <div class="row mt-3">
@@ -35,6 +33,25 @@
         <a href="{% url 'download_excel' %}" class="btn btn-success">Download Latest Report</a>
     </div>
 </form>
+
+<div class="row">
+    <div class="col-md-6 mt-2">
+        <div class="row">
+            <div class="col-md-7 pr-md-1">
+                <select id="fileDropdown" class="form-control">
+                    <option value="">Select a report to download</option>
+                </select>
+            </div>
+            <div class="col-md-2 pl-md-1">
+                <button id="downloadFileButton" class="btn btn-success mb-1 w-115">Download</button>
+            </div>
+            <div class="col-md-3 pl-md-1">
+                <button id="deleteAllFilesButton" class="btn btn-danger mb-1 w-100">Delete All Files</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -98,6 +115,86 @@
                 .catch(error => 
                 alert(error.message));
             });
+
+            fetchFileList(); // Fetch the list of files when the page loads
+
+            
+            // Add event listeners for download and delete buttons
+            var downloadButton = document.querySelector("#downloadFileButton");
+                if (downloadButton) {
+                    downloadButton.addEventListener("click", downloadFile);
+                } else {
+                    console.error('Download button not found');
+                }
+
+                var deleteButton = document.querySelector("#deleteAllFilesButton");
+                if (deleteButton) {
+                    deleteButton.addEventListener("click", deleteAllFiles);
+                } else {
+                    console.error('Delete button not found');
+                }
+            });
+
+            function fetchFileList() {
+                fetch('/list-files/')
+                    .then(response => response.json())
+                    .then(files => populateDropdown(files))
+                    .catch(error => console.error('Error:', error));
+            }
+
+            function populateDropdown(files) {
+                let dropdown = document.querySelector('#fileDropdown');
+                dropdown.innerHTML = '<option value="">Select a report to download</option>'; // Clear existing options
+                files.forEach(file => {
+                    let option = document.createElement('option');
+                    option.value = file;
+                    option.textContent = file;
+                    dropdown.appendChild(option);
+                });
+            }
+
+            function downloadFile() {
+                let selectedFile = document.querySelector('#fileDropdown').value;
+                if (selectedFile) {
+                    window.location.href = `/download-file/?file=${encodeURIComponent(selectedFile)}`;
+                } else {
+                    alert('Please select a file to download.');
+                }
+            }
+            
+
+            function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+
+            function deleteAllFiles() {
+                    const csrftoken = getCookie('csrftoken');
+
+                    fetch('/delete-all-files/', { 
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrftoken },
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Problem deleting files');
+                        return response.json();
+                    })
+                    .then(() => {
+                        alert('All files have been deleted.');
+                        fetchFileList(); // Refresh the file list
+                    })
+                    .catch(error => alert(error.message));
+                }
     
                 function checkTaskStatus(taskId, onComplete) {
                     if (taskId.startsWith('skipped_task_')) {
@@ -152,7 +249,7 @@
             let tableBody = document.querySelector('#linksTable tbody');
             tableBody.innerHTML = ''; // Clear the table
         }
-    });
+        
 </script>
 
         

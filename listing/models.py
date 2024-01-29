@@ -29,7 +29,8 @@ class TestResult(models.Model):
 
 class WebsiteData(models.Model):
     api_config = models.ForeignKey(APIConfig, on_delete=models.CASCADE, related_name='website_data')
-    company_names = models.TextField()  # Stores a JSON string of company names
+    company_names = models.TextField()  # Stores a JSON-encoded list of company names
+    company_websites = models.TextField()  # Stores a JSON-encoded list of company websites
 
     def __str__(self):
         return self.api_config.website
