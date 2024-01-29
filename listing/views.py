@@ -325,28 +325,26 @@ def rest_api_test(request):
 
 
 def test_status_update(request):
-    # test_all = 'test_all' in request.POST
-    # print(test_all)
-    # print("Checking if 'test_all' is triggered")
-
     # Fetch test results and prepare the context
     test_results = TestResult.objects.all()
     test_status = {result.config.website: result.status for result in test_results}
 
     failed_urls = [(url, status.split(":")[1].strip()) for url, status in test_status.items() if 'Failed' in status]
-        
 
-    if failed_urls:
-        try:
-            excel_file = os.path.join(settings.BASE_DIR, 'failed_tests.xlsx')
-            logger.info(f"Creating Excel file at: {excel_file}")
-            new_data = pd.DataFrame(failed_urls, columns=['URL', 'Status'])
-            new_data.to_excel(excel_file, index=False)
-        except Exception as e:
-            logger.error(f"Error while creating Excel file: {e}")
-    else:
-            logger.info("No failed URLs to save")
-        
+    # Always create an Excel file, but it will be empty if there are no failed URLs
+    try:
+        excel_file = os.path.join(settings.BASE_DIR, 'failed_tests.xlsx')
+        logger.info(f"Creating Excel file at: {excel_file}")
+
+        # Create a DataFrame, it will be empty if failed_urls is empty
+        new_data = pd.DataFrame(failed_urls, columns=['URL', 'Status'])
+        new_data.to_excel(excel_file, index=False)
+
+        if not failed_urls:
+            logger.info("No failed URLs to save, creating an empty Excel file.")
+
+    except Exception as e:
+        logger.error(f"Error while creating Excel file: {e}")
 
     return JsonResponse(test_status)
 
@@ -382,17 +380,22 @@ def perform_test(request, config):
         messages.error(request, f"An error occurred while testing {config.website}: {e}")
 
 
-def download_file(request):
+def download_failed_list(request):
     file_name = 'failed_tests.xlsx'
     file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), file_name)
-    print(f"File path in download_file: {file_path}")  # Print the file path
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        messages.error(request, "Failed Tests file not found.")
+        return HttpResponseNotFound('<h1>File not found</h1>')
+
+    # Open the file without using a context manager
+    f = open(file_path, 'rb')
+    response = FileResponse(f)
+    response['Content-Disposition'] = 'attachment; filename="failed_tests.xlsx"'
+    return response
 
 
-    if os.path.exists(file_path):
-        # Serve the file directly using FileResponse, which will handle the file opening
-        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=file_name)
-    else:
-        return HttpResponseNotFound('The requested file was not found on our server.')
         
 
 def list_files(request):
