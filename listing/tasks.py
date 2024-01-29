@@ -468,7 +468,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     post = {
         'title': company_name,
         'slug': company_name,
-        'status': 'publish',
+        'status': 'draft',
         'content': final_content,
         # 'categories': 11,   # Uncomment and use as needed
         # 'featured_media': image_id  # Uncomment and use as needed

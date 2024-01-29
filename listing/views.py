@@ -223,7 +223,11 @@ def get_generated_links_json(request):
 @login_required
 def download_excel(request):
     # Retrieve the filename from the session
-    uploaded_file_name = request.session.get('uploaded_file_name', 'generated_links.xlsx')
+    uploaded_file_name = request.session.get('uploaded_file_name')
+
+    # If the file name is not in the session, return an error response
+    if not uploaded_file_name:
+        return HttpResponseNotFound('No file name found in the session.')
 
     # Check if the file name already ends with '.xlsx', if not, append it
     if not uploaded_file_name.lower().endswith('.xlsx'):
@@ -234,10 +238,11 @@ def download_excel(request):
 
     # Check if the file exists
     if os.path.exists(file_path):
-        # Serve the file
-        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=uploaded_file_name)
+        # Serve the file using a context manager for safe file handling
+        with open(file_path, 'rb') as file:
+            return FileResponse(file, as_attachment=True, filename=uploaded_file_name)
     else:
-        # File not found
+        # File not found, return an error response
         return HttpResponseNotFound('The requested file was not found on our server.')
 
 
