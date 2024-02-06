@@ -107,7 +107,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     if not (linkedin_url or facebook_url or twitter_url or youtube_url):
         social_template_1 = ""
     else:
-        social_template_1 = """<div class="company-info">
+        social_template_1 = f"""<div class="company-info">
             <h2>Connect With Us</h2>
             <div class="social-media">
              {linkedin_link_html_1}
