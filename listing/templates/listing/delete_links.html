@@ -1,0 +1,27 @@
+{% extends "listing/base.html" %}
+
+{% block title %}Deleting Links{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <h2>Excel Upload and Link Paste Form</h2>
+    <form>
+        <!-- File Upload -->
+        <div class="mb-3">
+            <label for="excelFileUpload" class="form-label">Upload Excel File</label>
+            <input class="form-control" type="file" id="excelFileUpload" accept=".xlsx, .xls">
+        </div>
+
+        <!-- Placeholder for Links -->
+        <div class="mb-3">
+            <label for="linkPasteArea" class="form-label">Or Paste Links Here</label>
+            <textarea class="form-control" id="linkPasteArea" rows="10" placeholder="Paste your links here..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+
+{% endblock %}

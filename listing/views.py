@@ -439,3 +439,7 @@ def delete_all_files(request):
             'failed_files': failed_files
         })
     return JsonResponse({'status': 'success', 'deleted_files': deleted_files})
+
+
+def delete_links(request):
+    return render(request, "delete_links.html")
