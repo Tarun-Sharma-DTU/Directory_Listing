@@ -171,6 +171,14 @@ def get_task_result(request, task_id):
 
 
 
+from django.http import JsonResponse
+import openpyxl
+import os
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
 @login_required
 def get_generated_links_json(request):
     # Fetch links from the database
@@ -182,8 +190,9 @@ def get_generated_links_json(request):
 
     uploaded_file_name = request.session.get('uploaded_file_name', 'Generated Links')
     if uploaded_file_name:
-        # Extract the base file name without the extension
+        # Extract the base file name without the extension and append "-links"
         base_file_name, _ = os.path.splitext(uploaded_file_name)
+        base_file_name += "-links"  # Append "-links" to the base file name
 
         # Sanitize the base file name
         sanitized_base_name = ''.join(char for char in base_file_name if char.isalnum() or char in " -_")
@@ -220,6 +229,11 @@ def get_generated_links_json(request):
 
 
 
+
+from django.http import HttpResponseNotFound, FileResponse
+import os
+from django.conf import settings
+
 @login_required
 def download_excel(request):
     # Retrieve the filename from the session
@@ -229,7 +243,10 @@ def download_excel(request):
     if not uploaded_file_name:
         return HttpResponseNotFound('No file name found in the session.')
 
-    # Check if the file name already ends with '.xlsx', if not, append it
+    # Append "-links" to the file name before checking the extension
+    uploaded_file_name = uploaded_file_name.rsplit('.', 1)[0] + '-links'
+
+    # Check if the file name now ends with '.xlsx', if not, append '.xlsx'
     if not uploaded_file_name.lower().endswith('.xlsx'):
         uploaded_file_name += '.xlsx'
 
@@ -238,12 +255,15 @@ def download_excel(request):
 
     # Check if the file exists
     if os.path.exists(file_path):
-        # Serve the file using a context manager for safe file handling
-        with open(file_path, 'rb') as file:
-            return FileResponse(file, as_attachment=True, filename=uploaded_file_name)
+        # Serve the file directly without using a context manager
+        file = open(file_path, 'rb')
+        return FileResponse(file, as_attachment=True, filename=uploaded_file_name)
     else:
         # File not found, return an error response
         return HttpResponseNotFound('The requested file was not found on our server.')
+
+
+
 
 
 @login_required
