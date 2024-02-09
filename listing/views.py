@@ -19,6 +19,8 @@ import glob
 from urllib.parse import urlparse
 import requests
 from django.core.exceptions import ValidationError
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 
 
@@ -62,7 +64,7 @@ def home(request):
         # Clear the session value
         if 'uploaded_file_name' in request.session:
             del request.session['uploaded_file_name']
-
+        print("DATADA")
 
         excel_file = request.FILES['excel_file']
         uploaded_file_name = excel_file.name  # Get the uploaded file's name
@@ -137,26 +139,41 @@ def home(request):
 
 
 
-
 @login_required
 def unique_consecutive_domain(request):
-    if request.method == 'POST' and 'excel_file' in request.FILES:
+    if request.method == 'POST' and request.FILES.get('excel_file', None):
         excel_file = request.FILES['excel_file']
         uploaded_file_name = excel_file.name
         request.session['uploaded_file_name'] = uploaded_file_name
 
         site_number = int(request.POST.get('site_number'))
 
-        # Determine websites already posted to by the user
         already_posted_websites = PostedWebsite.objects.filter(user=request.user).values_list('website__website', flat=True)
-        available_api_configs = APIConfig.objects.filter(site_enable=True).exclude(website__in=already_posted_websites)
+        print(f"Already posted websites: {list(already_posted_websites)}")
 
-        # Check if there are enough available websites after excluding those already used
-        if available_api_configs.count() < site_number:
-            return JsonResponse({
-                'error': 'Not enough available websites to run the requested number of tasks.',
-                'api_configs_count': available_api_configs.count(),
-                    }, status=400)
+        available_api_configs = APIConfig.objects.filter(site_enable=True).exclude(website__in=already_posted_websites)
+        print(f"Available API configs: {list(available_api_configs.values_list('website', flat=True))}")
+
+        total_available_sites = available_api_configs.count()
+        shortage = site_number - total_available_sites
+        print(f"Total available sites: {total_available_sites}, Shortage: {shortage}")
+
+        if shortage > 0:           
+            additional_websites_qs = PostedWebsite.objects.filter(                
+                website__site_enable=True  # Ensure this condition correctly refers to APIConfig's site_enable field
+            ).order_by('?')[:shortage]
+
+            additional_websites = additional_websites_qs.values_list('website__website', flat=True)
+            print(f"Additional websites from PostedWebsite: {list(additional_websites)}")
+
+            additional_api_configs = APIConfig.objects.filter(website__in=additional_websites)
+            all_api_configs = available_api_configs.union(additional_api_configs)
+            print("ALL API CONFIG SITE afte union:", all_api_configs)
+        else:
+            all_api_configs = available_api_configs
+
+        print(f"All API configs to use: {list(all_api_configs.values_list('website', flat=True))}")
+
 
         wb = openpyxl.load_workbook(excel_file, data_only=True)
         sheet = wb.active
@@ -167,20 +184,15 @@ def unique_consecutive_domain(request):
         GeneratedURL.objects.filter(user=request.user).delete()
         task_ids = []
         delay_seconds = 0
-        processed_sites_count = 0
 
-        for api_config in available_api_configs.iterator():
-            website_data, created = WebsiteData.objects.get_or_create(api_config=api_config)
-            existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
+        for api_config in all_api_configs[:site_number]:
+            # Ensure unique company websites if match_root_domain is required
             match_root_domain = 'match_root_domain' in request.POST
-
             if match_root_domain:
                 new_company_website_root = get_root_domain(company_website)
-                existing_roots = [get_root_domain(url) for url in existing_company_websites]
+                website_data, _ = WebsiteData.objects.get_or_create(api_config=api_config)
+                existing_roots = [get_root_domain(url) for url in json.loads(website_data.company_websites or "[]")]
                 if new_company_website_root in existing_roots:
-                    continue
-            else:
-                if company_website in existing_company_websites:
                     continue
 
             print("Creating task for website:", api_config.website)
@@ -190,19 +202,26 @@ def unique_consecutive_domain(request):
             )
             task_ids.append(task.id)
             delay_seconds += 2
-            processed_sites_count += 1
-
-            if processed_sites_count >= site_number:
-                break
 
         if not task_ids:
             messages.error(request, 'No tasks were scheduled due to configuration or eligibility issues.')
-            return redirect('your_form_page_url_name')
+            return redirect('unique_consecutive_domain')  
+        # Before returning JsonResponse
+        if shortage > 0:
+            print("SHORTANTGE")
+            used_websites_names = additional_api_configs.values_list('website', flat=True)
+            additional_message = f"Note: Due to a shortage of available new websites, some tasks are scheduled on previously used websites: {', '.join(used_websites_names)}."
+        else:
+            additional_message = ''
 
-        return JsonResponse({'message': 'Tasks scheduled successfully.', 'task_ids': task_ids})
-
-    return render(request, "listing/unique_domain.html")
-
+        return JsonResponse({
+            'message': 'Tasks scheduled successfully.',
+            'task_ids': task_ids,
+            'used_posted_websites': shortage > 0,
+            'additional_message': additional_message,
+        })
+    else:
+        return render(request, "listing/unique_domain.html")  
 
 
 @login_required
@@ -677,3 +696,18 @@ def find_post_id_by_url(domain_name, post_url, username, app_password):
 
     return post_id
     
+@login_required
+def flash_posted_website(request):
+    if request.method == "POST":
+        if PostedWebsite.objects.count() == 0:
+            # If there are no objects, flash a message indicating the database is already empty
+            messages.info(request, "The database is already empty.")
+        else:
+            # Delete all objects in PostedWebsite if there are any
+            PostedWebsite.objects.all().delete()
+            messages.success(request, "All data in Posted Website Records have been successfully deleted.")
+    else:
+        messages.error(request, "Invalid request method.")
+    
+    # Redirect to a certain page after the action
+    return HttpResponseRedirect(reverse('unique_consecutive_domain'))

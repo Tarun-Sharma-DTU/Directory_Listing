@@ -27,6 +27,7 @@ urlpatterns = [
     path('list-files/', views.list_files, name='list_files'),
     path('download-file/', views.download_file, name='download_file'),
     path('delete-all-files/', views.delete_all_files, name='delete_all_files'),
+    path('flash-posted-website/', views.flash_posted_website, name='flash_posted_website'),
 
     
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
