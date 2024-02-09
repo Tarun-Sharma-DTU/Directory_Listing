@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from .tasks import create_company_profile_post, test_post_to_wordpress, delete_from_wordpress, perform_test_task
 from django.shortcuts import render
 import openpyxl
-from .models import APIConfig, GeneratedURL, TestResult, WebsiteData
+from .models import APIConfig, GeneratedURL, TestResult, WebsiteData, CompanyURL, PostedWebsite
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
@@ -17,6 +17,9 @@ import json
 import os
 import glob
 from urllib.parse import urlparse
+import requests
+from django.core.exceptions import ValidationError
+
 
 
 
@@ -108,9 +111,10 @@ def home(request):
                         task_ids.append('skipped_task_' + str(processed_sites_count))
                         continue
                            
-                # Process the api_config since the company_name doesn't exist in WebsiteData
                 website = api_config.website.rstrip('/')
+                print("WEBSITE", website)
                 json_url = f"https://{website}/wp-json/wp/v2"
+                print("Creating task...")
                 task = create_company_profile_post.apply_async(
                     args=[row_values, json_url, api_config.website, api_config.user, api_config.password, api_config.template_no],
                     countdown=delay_seconds
@@ -128,25 +132,90 @@ def home(request):
 
     return render(request, "listing/index.html")
 
+
+
+
+@login_required
+def unique_consecutive_domain(request):
+    if request.method == 'POST' and 'excel_file' in request.FILES:
+        excel_file = request.FILES['excel_file']
+        uploaded_file_name = excel_file.name
+        request.session['uploaded_file_name'] = uploaded_file_name
+
+        site_number = int(request.POST.get('site_number'))
+
+        # Determine websites already posted to by the user
+        already_posted_websites = PostedWebsite.objects.filter(user=request.user).values_list('website__website', flat=True)
+        available_api_configs = APIConfig.objects.filter(site_enable=True).exclude(website__in=already_posted_websites)
+
+        # Check if there are enough available websites after excluding those already used
+        if available_api_configs.count() < site_number:
+            return JsonResponse({
+                'error': 'Not enough available websites to run the requested number of tasks.',
+                'api_configs_count': available_api_configs.count(),
+                    }, status=400)
+
+        wb = openpyxl.load_workbook(excel_file, data_only=True)
+        sheet = wb.active
+        second_row = sheet[2]
+        row_values = [cell.value for cell in second_row]
+        company_website = row_values[3]
+
+        GeneratedURL.objects.filter(user=request.user).delete()
+        task_ids = []
+        delay_seconds = 0
+        processed_sites_count = 0
+
+        for api_config in available_api_configs.iterator():
+            website_data, created = WebsiteData.objects.get_or_create(api_config=api_config)
+            existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
+            match_root_domain = 'match_root_domain' in request.POST
+
+            if match_root_domain:
+                new_company_website_root = get_root_domain(company_website)
+                existing_roots = [get_root_domain(url) for url in existing_company_websites]
+                if new_company_website_root in existing_roots:
+                    continue
+            else:
+                if company_website in existing_company_websites:
+                    continue
+
+            print("Creating task for website:", api_config.website)
+            task = create_company_profile_post.apply_async(
+                args=[row_values, f"https://{api_config.website}/wp-json/wp/v2", api_config.website, api_config.user, api_config.password, api_config.template_no],
+                countdown=delay_seconds
+            )
+            task_ids.append(task.id)
+            delay_seconds += 2
+            processed_sites_count += 1
+
+            if processed_sites_count >= site_number:
+                break
+
+        if not task_ids:
+            messages.error(request, 'No tasks were scheduled due to configuration or eligibility issues.')
+            return redirect('your_form_page_url_name')
+
+        return JsonResponse({'message': 'Tasks scheduled successfully.', 'task_ids': task_ids})
+
+    return render(request, "listing/unique_domain.html")
+
+
+
 @login_required
 def get_task_result(request, task_id):
     task_result = AsyncResult(task_id)
     if task_result.ready():
         try:
-            url, website, company_name, company_website = task_result.result
+            Author_name, url, website, company_website = task_result.result
             if url:
                 logger.info(f"URL saved to database: {url}")
-                GeneratedURL.objects.create(user=request.user, url=url)
+                GeneratedURL.objects.create(user=request.user, url=url, author_name=Author_name)
+                CompanyURL.objects.create(generated_url=url, company_website=company_website)
 
                 # Retrieve or create WebsiteData for the website
                 api_config = APIConfig.objects.get(website=website)
                 website_data, created = WebsiteData.objects.get_or_create(api_config=api_config)
-
-                # Handle company_names
-                existing_company_names = json.loads(website_data.company_names) if website_data.company_names else []
-                if company_name not in existing_company_names:
-                    existing_company_names.append(company_name)
-                    website_data.company_names = json.dumps(existing_company_names)
 
                 # Handle company_websites
                 existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
@@ -157,7 +226,7 @@ def get_task_result(request, task_id):
                 # Save the updated website_data
                 website_data.save()
 
-                return JsonResponse({'status': 'SUCCESS', 'url': url})
+                return JsonResponse({'status': 'SUCCESS', 'url': url, 'author_name': Author_name})
             else:
                 logger.warning("Task returned an empty URL.")
                 failure_url = f"{website} - Failed to Post in this Domain" if website else "Task Failed"
@@ -169,70 +238,112 @@ def get_task_result(request, task_id):
     else:
         return JsonResponse({'status': 'PENDING'})
 
+@login_required
+def get_task_result_unique(request, task_id):
+    task_result = AsyncResult(task_id)
+    if task_result.ready():
+        try:
+            Author_name, url, website, company_website = task_result.result
+            if url:
+                logger.info(f"URL saved to database: {url}")
+                # Save the generated URL and associated data
+                GeneratedURL.objects.create(user=request.user, url=url, author_name=Author_name)
+                CompanyURL.objects.create(generated_url=url, company_website=company_website)
 
+                # Retrieve or create the APIConfig for the website
+                try:
+                    api_config = APIConfig.objects.get(website=website)
+                    
+                    # Save to PostedWebsite if not already saved
+                    posted_website, created = PostedWebsite.objects.get_or_create(website=api_config, user=request.user)
+                    if created:
+                        logger.info(f"New PostedWebsite entry created for {website}")
+                    else:
+                        logger.info(f"PostedWebsite entry already exists for {website}")
 
-from django.http import JsonResponse
-import openpyxl
-import os
-from django.conf import settings
-import logging
+                    # Update WebsiteData with company website if not already included
+                    website_data, _ = WebsiteData.objects.get_or_create(api_config=api_config)
+                    existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
+                    if company_website not in existing_company_websites and company_website != "":
+                        existing_company_websites.append(company_website)
+                        website_data.company_websites = json.dumps(existing_company_websites)
+                        website_data.save()
+                
+                except APIConfig.DoesNotExist:
+                    logger.error(f"APIConfig does not exist for website: {website}")
 
-logger = logging.getLogger(__name__)
+                return JsonResponse({'status': 'SUCCESS', 'url': url, 'author_name': Author_name})
+            else:
+                logger.warning("Task returned an empty URL.")
+                failure_url = f"{website} - Failed to Post in this Domain" if website else "Task Failed"
+                GeneratedURL.objects.create(user=request.user, url=failure_url)
+                return JsonResponse({'status': 'FAILURE', 'error': 'Empty URL'})
+        except Exception as e:
+            logger.error(f"Error in get_task_result for {website}: {e}", exc_info=True)
+            return JsonResponse({'status': 'ERROR', 'error': str(e)})
+    else:
+        return JsonResponse({'status': 'PENDING'})
+    
+
 
 @login_required
 def get_generated_links_json(request):
-    # Fetch links from the database
-    links = GeneratedURL.objects.filter(user=request.user).order_by('created_at').values_list('url', flat=True)
-    
-    # Create an Excel workbook and sheet
+    # Fetch links and associated author names from the database
+    # This query assumes that you're able to directly access 'author_name' alongside 'url'
+    links_data = GeneratedURL.objects.filter(user=request.user).order_by('created_at').values('url', 'author_name')
+    links_list = [{'url': link['url'], 'author_name': link['author_name']} for link in links_data]
+
     workbook = openpyxl.Workbook()
     sheet = workbook.active
 
     uploaded_file_name = request.session.get('uploaded_file_name', 'Generated Links')
     if uploaded_file_name:
-        # Extract the base file name without the extension and append "-links"
         base_file_name, _ = os.path.splitext(uploaded_file_name)
-        base_file_name += "-links"  # Append "-links" to the base file name
-
-        # Sanitize the base file name
+        base_file_name += "-links"
         sanitized_base_name = ''.join(char for char in base_file_name if char.isalnum() or char in " -_")
         sanitized_base_name = sanitized_base_name[:31]  # Excel sheet title cannot exceed 31 characters
         sheet.title = sanitized_base_name
-
-        # Append '.xlsx' to create the final file name
         file_name = sanitized_base_name + '.xlsx'
     else:
         file_name = 'generated_links.xlsx'
 
     file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', file_name)
 
-    # Adding header
-    sheet['A1'] = 'URL'
+    # Adding headers
+    sheet['A1'] = 'SL Number'
+    sheet['B1'] = 'Root Domain'
+    sheet['C1'] = 'URL'
+    sheet['D1'] = 'Author Name'
 
-    # Fill the sheet with URLs
-    for row, url in enumerate(links, start=2):
-        sheet[f'A{row}'] = url
+    # Fill the sheet with URLs, Root Domain, and Author Name
+    for row_index, link_data in enumerate(links_data, start=2):
+        url = link_data['url']
+        author_name = link_data['author_name']  # Assuming 'author_name' is directly accessible
+        root_domain = urlparse(url).netloc  # Extract root domain from URL
+
+        # Write data to the sheet
+        sheet.cell(row=row_index, column=1, value=row_index - 1)  # SL Number
+        sheet.cell(row=row_index, column=2, value=root_domain)    # Root Domain
+        sheet.cell(row=row_index, column=3, value=url)             # URL
+        sheet.cell(row=row_index, column=4, value=author_name)     # Author Name
 
     try:
-        # Save workbook to the defined file path
         workbook.save(file_path)
         logger.info(f"Excel file successfully saved at {file_path}")
     except Exception as e:
         logger.error(f"Error saving Excel file: {e}", exc_info=True)
         return JsonResponse({'error': 'Failed to create Excel file'})
 
-    # Construct URL to the saved file
     file_url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, 'generated_files', file_name))
 
-    # Return JSON response with links and file URL
-    return JsonResponse({'links': list(links), 'excel_file_url': file_url})
+    # Return JSON response with the file URL
+    return JsonResponse({
+            'excel_file_url': file_url,
+            'links': links_list  # Add the links list here
+        })
 
 
 
-
-from django.http import HttpResponseNotFound, FileResponse
-import os
-from django.conf import settings
 
 @login_required
 def download_excel(request):
@@ -249,9 +360,11 @@ def download_excel(request):
     # Check if the file name now ends with '.xlsx', if not, append '.xlsx'
     if not uploaded_file_name.lower().endswith('.xlsx'):
         uploaded_file_name += '.xlsx'
+    print(uploaded_file_name)
 
     # Define the file path
     file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', uploaded_file_name)
+    print(file_path)
 
     # Check if the file exists
     if os.path.exists(file_path):
@@ -461,5 +574,103 @@ def delete_all_files(request):
     return JsonResponse({'status': 'success', 'deleted_files': deleted_files})
 
 
-def delete_links(request):
-    return render(request, "delete_links.html")
+@login_required
+def delete_posts(request):
+    deleted_posts_urls = request.session.pop('deleted_posts_urls', []) if 'deleted_posts_urls' in request.session else []
+
+    if request.method == 'POST':
+        excel_file = request.FILES.get('excel_file')
+        links_textarea = request.POST.get('links')
+
+        links = []
+        if excel_file:
+            wb = openpyxl.load_workbook(excel_file)
+            worksheet = wb.active
+            for row in worksheet.iter_rows(min_row=1, values_only=True):
+                links.append(row[0])
+        elif links_textarea:
+            links = links_textarea.splitlines()
+
+        deleted_posts_count = 0
+
+        for post_url in links:
+            if delete_post_by_url(post_url):
+                try:
+                    company_url_instance = CompanyURL.objects.get(generated_url=post_url)
+                    company_website = company_url_instance.company_website
+                    company_url_instance.delete()  # Delete from CompanyURL model
+
+                    parsed_url = urlparse(post_url)
+                    domain = parsed_url.netloc
+
+                    website_data_instances = WebsiteData.objects.filter(api_config__website__exact=domain)
+                    for website_data in website_data_instances:
+                        existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
+                        if company_website in existing_company_websites:
+                            existing_company_websites.remove(company_website)
+                            # After removing all items from the list...
+                            if not existing_company_websites:
+                                website_data.company_websites = None  # This will set the field to NULL in the database
+                            else:
+                                website_data.company_websites = json.dumps(existing_company_websites)
+                            website_data.save()
+
+                            deleted_posts_urls.append(post_url)
+                            deleted_posts_count += 1
+                except CompanyURL.DoesNotExist:
+                    messages.error(request, f'No company website found for URL: {post_url}')
+
+        if deleted_posts_count > 0:
+            messages.success(request, f'Successfully deleted {deleted_posts_count} posts.')
+        else:
+            messages.info(request, 'No posts to delete or deletion failed.')
+
+        # Add the deleted_posts_urls to the session to make it available after redirect
+        request.session['deleted_posts_urls'] = deleted_posts_urls
+        # Redirect to the same page to show the result
+        return redirect('delete_posts')
+
+    # For GET request or after the deletion, render the page with the context
+    context = {'deleted_posts_urls': deleted_posts_urls}
+    return render(request, 'listing/delete_posts.html', context)
+
+    
+def delete_post_by_url(post_url):
+    parsed_url = urlparse(post_url)
+    domain = parsed_url.netloc
+
+    # Find the corresponding APIConfig instance
+    try:
+        config = APIConfig.objects.get(website__icontains=domain)
+    except APIConfig.DoesNotExist:
+        print(f"Configuration not found for {domain}")
+        return False  # Indicate failure
+
+    post_id = find_post_id_by_url(domain, post_url, config.user, config.password)
+    if post_id:
+        api_url = f"https://{domain}/wp-json/wp/v2/posts/{post_id}"
+        response = requests.delete(api_url, auth=(config.user, config.password))
+        if response.status_code == 200:
+            print(f"Successfully deleted post: {post_url}")
+            return True  # Indicate success
+        else:
+            print(f"Failed to delete post: {post_url}, Status Code: {response.status_code}")
+    else:
+        print(f"Post ID not found for URL: {post_url}")
+
+    return False  # Indicate failure
+
+def find_post_id_by_url(domain_name, post_url, username, app_password):
+    post_json = f"https://{domain_name}/wp-json/wp/v2/posts"
+    response = requests.get(post_json)
+    post_id = None
+    if response.status_code == 200:
+        data = response.json()
+        # Find the post ID       
+        for post in data:
+            if post['link'] == post_url:
+                post_id = post['id']
+                break
+
+    return post_id
+    

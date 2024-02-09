@@ -11,8 +11,8 @@
 </head>
 <body class="container-fluid no-padding">
     <!-- Navbar with Home, Site Data and Logout -->
-    <nav class="navbar navbar-expand-lg navbar-light mb-4" style="background-color: #a453ca;">
-        <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-light mb-4" style="background: linear-gradient(to right, #a453ca, #85D8CE);">
+    <div class="container">
 <a class="navbar-brand" href="">
     <img src="https://cdn-jjdkn.nitrocdn.com/gqINRhCZOKwBcLXEZEftrcKvEkbRHXzn/assets/images/optimized/rev-22e8d1e/searchcombat.b-cdn.net/wp-content/uploads/2022/10/Search-combat-logo-01.png" alt="Search Combat Logo" height="40">
 </a>            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,10 +25,16 @@
                         <a class="nav-link active" aria-current="page" href="/">Home</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="{% url 'unique_consecutive_domain' %}">Unique Consecutive Domain</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'site_data' %}">Site Data</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'rest_api_test' %}">Rest Api Test</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'delete_posts' %}">Delete Generated Links</a>
                     </li>
                 </ul>
                 {% else %}

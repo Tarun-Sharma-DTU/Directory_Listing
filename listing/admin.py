@@ -1,4 +1,4 @@
-from .models import APIConfig, GeneratedURL, WebsiteData
+from .models import APIConfig, GeneratedURL, WebsiteData, CompanyURL, PostedWebsite
 from django.contrib import admin
 
 
@@ -8,3 +8,5 @@ class APIConfigAdmin(admin.ModelAdmin):
 admin.site.register(APIConfig, APIConfigAdmin)
 admin.site.register(GeneratedURL)
 admin.site.register(WebsiteData)
+admin.site.register(CompanyURL)
+admin.site.register(PostedWebsite)

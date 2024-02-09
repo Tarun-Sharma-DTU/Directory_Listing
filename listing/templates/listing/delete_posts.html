@@ -1,0 +1,55 @@
+{% extends "listing/base.html" %}
+
+{% block title %}Deleting Links{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <h2>Upload Excel or Paste Links for Delete</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <!-- File Upload -->
+        <div class="mb-3">
+            <label for="excelFileUpload" class="form-label">Upload Excel File</label>
+            <input class="form-control" type="file" id="excelFileUpload" name="excel_file" accept=".xlsx, .xls">
+        </div>
+
+        <!-- Placeholder for Links -->
+        <div class="mb-3">
+            <label for="linkPasteArea" class="form-label">Or Paste Links Here</label>
+            <textarea class="form-control" id="linkPasteArea" name="links" rows="10" placeholder="Paste your links here..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+
+
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message|linebreaks }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if deleted_posts_urls %}
+<div class="container mt-3">
+    <div class="alert alert-info" role="alert">
+        <strong>The following posts have been deleted:</strong>
+        <ul>
+            {% for post_url in deleted_posts_urls %}
+            <li>{{ post_url }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+
+
+
+{% endblock %}

@@ -18,6 +18,7 @@ class APIConfig(models.Model):
 class GeneratedURL(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     url = models.URLField()
+    author_name = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -28,10 +29,26 @@ class TestResult(models.Model):
     status = models.CharField(max_length=100)
 
 class WebsiteData(models.Model):
-    api_config = models.ForeignKey(APIConfig, on_delete=models.CASCADE, related_name='website_data')
-    company_names = models.TextField()  # Stores a JSON-encoded list of company names
-    company_websites = models.TextField()  # Stores a JSON-encoded list of company websites
+    api_config = models.ForeignKey(APIConfig, on_delete=models.CASCADE, related_name='website_data', null=True, blank=True)
+    company_websites = models.TextField(null=True, blank=True)  # Stores a JSON-encoded list of company websites
 
     def __str__(self):
         return self.api_config.website
+    
+class CompanyURL(models.Model):
+    generated_url = models.URLField(max_length=2048, null=True, blank=True) 
+    company_website = models.URLField(max_length=2048, null=True, blank=True)
 
+    def __str__(self):
+        return f"{self.generated_url} - Linked to - {self.company_website}"
+    
+
+class PostedWebsite(models.Model):
+    website = models.ForeignKey(APIConfig, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        if self.website:
+            return self.website.website
+        return "No website associated"
