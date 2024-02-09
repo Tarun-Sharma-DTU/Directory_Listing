@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 
@@ -26,6 +28,5 @@ urlpatterns = [
     path('download-file/', views.download_file, name='download_file'),
     path('delete-all-files/', views.delete_all_files, name='delete_all_files'),
 
-
-
-]
+    
+]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

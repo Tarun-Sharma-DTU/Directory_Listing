@@ -56,6 +56,9 @@ def get_root_domain(url):
 @login_required
 def home(request):
     if request.method == 'POST' and 'excel_file' in request.FILES:
+        media_dir = os.path.join(settings.MEDIA_ROOT, 'generated_files')
+        if not os.path.exists(media_dir):
+            os.makedirs(media_dir)
         # Clear the session value
         if 'uploaded_file_name' in request.session:
             del request.session['uploaded_file_name']
