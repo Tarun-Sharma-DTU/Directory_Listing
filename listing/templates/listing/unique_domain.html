@@ -293,7 +293,7 @@
             let cell3 = row.insertCell(2);
 
             cell1.innerHTML = (index + 1);
-            cell2.innerHTML = linkData.url;
+            cell2.innerHTML = `<a href="${linkData.url}" target="_blank">${linkData.url}</a>`;
             cell3.innerHTML = linkData.author_name;
         }
 

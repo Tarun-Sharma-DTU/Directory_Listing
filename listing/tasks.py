@@ -470,7 +470,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     elif html_template == 3:
         final_content = html_3
         
-    print(json_url+'/posts')
+
 
     # Data for creating a new user with the 'author' role
     new_user_data = {
@@ -479,79 +479,71 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
         'password': user_password,
         'roles': ['author']  # Set the role to 'author'
     }
-    print(new_username)
+
     # Send the request to create a new user
-    user_response = requests.post(json_url + '/users', headers=header, json=new_user_data)
     print("USER", new_username)
     print("mail", user_email)
     print("PASS:", user_password)
-    print(header)
-    print(json_url)
 
-    print(user_response)
+
 
     # Initialize a flag to determine whether we have a valid user ID
     valid_user_id = False
+    Author_name = "Default"
 
-    # Check if the request was successful
-    if user_response.status_code == 201:
-        print('New user created successfully!')
-        new_user_id = user_response.json()['id']
-        valid_user_id = True
-    else:
-        print('User already exists. Fetching existing user ID...')
+    # Only attempt to create or fetch a user if all user details are provided
+    if new_username and user_email and user_password:
 
-        # Fetch the existing user ID by username
-        existing_user_username = new_username
-        user_query_params = {'search': existing_user_username}
-        existing_user_response = requests.get(json_url + '/users', headers=header, params=user_query_params)
+        new_user_data = {
+            'username': new_username,
+            'email': user_email,
+            'password': user_password,
+            'roles': ['author']  # Assuming the platform supports setting roles via API
+        }
 
-        if existing_user_response.status_code == 200:
-            existing_user_data = existing_user_response.json()
-            if existing_user_data:
-                # Get the ID of the existing user
-                new_user_id = existing_user_data[0]['id']
+        # Attempt to create a new user
+        user_response = requests.post(json_url + '/users', headers=header, json=new_user_data)
+
+        if user_response.status_code == 201:
+            print('New user created successfully!')
+            new_user_id = user_response.json()['id']
+            valid_user_id = True
+            Author_name = new_username
+        else:
+            print('User already exists. Fetching existing user ID...')
+            user_query_params = {'search': new_username}
+            existing_user_response = requests.get(json_url + '/users', headers=header, params=user_query_params)
+
+            if existing_user_response.status_code == 200 and existing_user_response.json():
+                new_user_id = existing_user_response.json()[0]['id']
                 print('Existing user ID:', new_user_id)
                 valid_user_id = True
+                Author_name = new_username
             else:
-                print('User not found. Proceeding without specifying an author.')
+                print('Failed to fetch existing user. Proceeding without specifying an author.')
 
-        else:
-            print('Failed to fetch existing user. Proceeding without specifying an author.')
-
-    # Preparing the post data
-    post = {
+    post_data = {
         'title': company_name,
-        'slug': company_name,
+        'slug': company_name.replace(" ", "-").lower(),
         'status': 'publish',
-        'content': final_content,
-        # 'categories': 11,   # Uncomment and use as needed
-        # 'featured_media': image_id  # Uncomment and use as needed      
+        'content': final_content
     }
 
-    # Conditionally add the 'author' key if a valid user ID is found
     if valid_user_id:
-        post['author'] = new_user_id
-        Author_name = new_username
+        post_data['author'] = new_user_id
+
+    # Send the post request
+    response = requests.post(json_url + '/posts', headers=header, json=post_data)
+
+
+
+    if response.status_code == 201:
+        print("Post created successfully.")
+        post_link = response.json().get('link')
+        return Author_name, post_link, website, company_website
     else:
-        Author_name = "Administrator"
-
-    # Sending the POST request
-    try:
-      response = requests.post(json_url + '/posts', headers=header, json=post)
-      print(response)
-      if response.status_code == 201:
-        json_data = response.json()
-        draft_post_link = json_data.get('link', None)
-        logger.info(f"Task completed successfully with URL: {draft_post_link}")
-
-        return Author_name, draft_post_link, website, company_website
-      else:
-        logger.warning("Returning None due to non-201 response")
+        print("Failed to create post.")
         return Author_name, None, website, company_website
-    except Exception as e:
-        logger.error(f"Task failed: {e}")
-        return None, website, company_website
 
 
 

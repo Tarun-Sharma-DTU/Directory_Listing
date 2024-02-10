@@ -64,7 +64,6 @@ def home(request):
         # Clear the session value
         if 'uploaded_file_name' in request.session:
             del request.session['uploaded_file_name']
-        print("DATADA")
 
         excel_file = request.FILES['excel_file']
         uploaded_file_name = excel_file.name  # Get the uploaded file's name
@@ -208,7 +207,6 @@ def unique_consecutive_domain(request):
             return redirect('unique_consecutive_domain')  
         # Before returning JsonResponse
         if shortage > 0:
-            print("SHORTANTGE")
             used_websites_names = additional_api_configs.values_list('website', flat=True)
             additional_message = f"Note: Due to a shortage of available new websites, some tasks are scheduled on previously used websites: {', '.join(used_websites_names)}."
         else:
@@ -308,10 +306,10 @@ def get_task_result_unique(request, task_id):
     
 
 
+
 @login_required
 def get_generated_links_json(request):
-    # Fetch links and associated author names from the database
-    # This query assumes that you're able to directly access 'author_name' alongside 'url'
+
     links_data = GeneratedURL.objects.filter(user=request.user).order_by('created_at').values('url', 'author_name')
     links_list = [{'url': link['url'], 'author_name': link['author_name']} for link in links_data]
 
@@ -319,84 +317,66 @@ def get_generated_links_json(request):
     sheet = workbook.active
 
     uploaded_file_name = request.session.get('uploaded_file_name', 'Generated Links')
-    if uploaded_file_name:
-        base_file_name, _ = os.path.splitext(uploaded_file_name)
-        base_file_name += "-links"
-        sanitized_base_name = ''.join(char for char in base_file_name if char.isalnum() or char in " -_")
-        sanitized_base_name = sanitized_base_name[:31]  # Excel sheet title cannot exceed 31 characters
-        sheet.title = sanitized_base_name
-        file_name = sanitized_base_name + '.xlsx'
-    else:
-        file_name = 'generated_links.xlsx'
-
+    base_file_name, _ = os.path.splitext(uploaded_file_name)
+    base_file_name += "-links"
+    sanitized_base_name = ''.join(char for char in base_file_name if char.isalnum() or char in " -_")
+    sanitized_base_name = sanitized_base_name[:31]  # Excel sheet title cannot exceed 31 characters
+    sheet.title = sanitized_base_name
+    
+    # Ensure the file name is unique
+    file_name = f"{sanitized_base_name}.xlsx"
     file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', file_name)
 
-    # Adding headers
+    counter = 1
+    while os.path.exists(file_path):
+        file_name = f"{sanitized_base_name}-{counter}.xlsx"
+        file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', file_name)
+        counter +=1
+
     sheet['A1'] = 'SL Number'
     sheet['B1'] = 'Root Domain'
     sheet['C1'] = 'URL'
     sheet['D1'] = 'Author Name'
 
-    # Fill the sheet with URLs, Root Domain, and Author Name
-    for row_index, link_data in enumerate(links_data, start=2):
-        url = link_data['url']
-        author_name = link_data['author_name']  # Assuming 'author_name' is directly accessible
-        root_domain = urlparse(url).netloc  # Extract root domain from URL
-
-        # Write data to the sheet
-        sheet.cell(row=row_index, column=1, value=row_index - 1)  # SL Number
-        sheet.cell(row=row_index, column=2, value=root_domain)    # Root Domain
-        sheet.cell(row=row_index, column=3, value=url)             # URL
-        sheet.cell(row=row_index, column=4, value=author_name)     # Author Name
+    for index, link in enumerate(links_data, start=2):
+        url = link['url']
+        author_name = link['author_name']
+        root_domain = urlparse(url).netloc
+        sheet.cell(row=index, column=1, value=index-1)
+        sheet.cell(row=index, column=2, value=root_domain)
+        sheet.cell(row=index, column=3, value=url)
+        sheet.cell(row=index, column=4, value=author_name)
 
     try:
         workbook.save(file_path)
         logger.info(f"Excel file successfully saved at {file_path}")
+        # Save the unique file name in the session for later retrieval
+        request.session['download_file_name'] = file_name
     except Exception as e:
         logger.error(f"Error saving Excel file: {e}", exc_info=True)
         return JsonResponse({'error': 'Failed to create Excel file'})
 
     file_url = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, 'generated_files', file_name))
-
-    # Return JSON response with the file URL
-    return JsonResponse({
-            'excel_file_url': file_url,
-            'links': links_list  # Add the links list here
-        })
-
+    return JsonResponse({'excel_file_url': file_url, 'links': links_list})
 
 
 
 @login_required
 def download_excel(request):
-    # Retrieve the filename from the session
-    uploaded_file_name = request.session.get('uploaded_file_name')
-
-    # If the file name is not in the session, return an error response
-    if not uploaded_file_name:
+    download_file_name = request.session.get('download_file_name')
+    if not download_file_name:
         return HttpResponseNotFound('No file name found in the session.')
 
-    # Append "-links" to the file name before checking the extension
-    uploaded_file_name = uploaded_file_name.rsplit('.', 1)[0] + '-links'
+    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', download_file_name)
 
-    # Check if the file name now ends with '.xlsx', if not, append '.xlsx'
-    if not uploaded_file_name.lower().endswith('.xlsx'):
-        uploaded_file_name += '.xlsx'
-    print(uploaded_file_name)
-
-    # Define the file path
-    file_path = os.path.join(settings.MEDIA_ROOT, 'generated_files', uploaded_file_name)
-    print(file_path)
-
-    # Check if the file exists
     if os.path.exists(file_path):
-        # Serve the file directly without using a context manager
+        # Open the file without using 'with' to prevent auto-closing
         file = open(file_path, 'rb')
-        return FileResponse(file, as_attachment=True, filename=uploaded_file_name)
+        response = FileResponse(file, as_attachment=True, filename=download_file_name)
+        # No need to manually close the file; FileResponse will handle it.
+        return response
     else:
-        # File not found, return an error response
         return HttpResponseNotFound('The requested file was not found on our server.')
-
 
 
 
@@ -512,10 +492,8 @@ def test_status_update(request):
 def perform_test(request, config):
     try:
         username = config.user
-        print(username)
         password = config.password
         response = test_post_to_wordpress(config.website, username, password, "Test Content")
-        print(response)        
         test_status = request.session.get('test_status', {})
         if response.status_code in [201]:
             test_status[config.website] = 'Success: Post Created successfully'                
@@ -557,11 +535,18 @@ def download_failed_list(request):
 
 
         
-
 def list_files(request):
     media_subdir = os.path.join(settings.MEDIA_ROOT, 'generated_files')
-    files = [f for f in os.listdir(media_subdir) if f.endswith('.xlsx')]
-    return JsonResponse(files, safe=False)
+    # List all .xlsx files along with their full path
+    files = [os.path.join(media_subdir, f) for f in os.listdir(media_subdir) if f.endswith('.xlsx')]
+    
+    # Sort files by modification time in descending order
+    files.sort(key=os.path.getmtime, reverse=True)
+    
+    # Extract file names from the sorted list of file paths
+    file_names = [os.path.basename(f) for f in files]
+    
+    return JsonResponse(file_names, safe=False)
 
 def download_file(request):
     file_name = request.GET.get('file')  # Get the file name from request
@@ -604,14 +589,19 @@ def delete_posts(request):
         excel_file = request.FILES.get('excel_file')
         links_textarea = request.POST.get('links')
 
-        links = []
         if excel_file:
             wb = openpyxl.load_workbook(excel_file)
             worksheet = wb.active
             for row in worksheet.iter_rows(min_row=1, values_only=True):
-                links.append(row[0])
+                if row[0]:  # Check if the cell is not None
+                    link = row[0].strip()  # Strip spaces
+                    if not link.endswith('/'):  # Check if the link ends with a slash
+                        link += '/'  # Add a slash if it doesn't
+                    links.append(link)
         elif links_textarea:
-            links = links_textarea.splitlines()
+            links = [link.strip() for link in links_textarea.splitlines()]  # List comprehension to strip spaces
+            links = [link + '/' if not link.endswith('/') else link for link in links]  # Ensure each link ends with a slash
+
 
         deleted_posts_count = 0
 

@@ -3,12 +3,13 @@ version: '3.8'
 services:
   redis:
     image: "redis:alpine"
+    command: redis-server --maxmemory 150mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
 
   web:
     build: .
-    command: gunicorn --bind 0.0.0.0:8000 --timeout 120 directory_listing.wsgi:application
+    command: gunicorn --bind 0.0.0.0:8000 --timeout 120 directory_listing.wsgi:application --no-sendfile
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
