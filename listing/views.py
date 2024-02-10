@@ -201,7 +201,7 @@ def unique_consecutive_domain(request):
                 countdown=delay_seconds
             )
             task_ids.append(task.id)
-            delay_seconds += 2
+            delay_seconds += 4
 
         if not task_ids:
             messages.error(request, 'No tasks were scheduled due to configuration or eligibility issues.')
