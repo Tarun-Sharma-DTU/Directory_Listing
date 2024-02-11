@@ -15,21 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the current directory contents into the container at /app
 COPY . /app/
 
-# Make port 8000 available to the world outside this container
-EXPOSE 8000
-
 # Copy the entrypoint script into the container
 COPY entrypoint.sh /app/entrypoint.sh
 
 # Set the entrypoint script to be executable
 RUN chmod +x /app/entrypoint.sh
 
-
 # Set the entrypoint
 ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
-
-
-# Run the Gunicorn server
-CMD ["gunicorn", "--bind", "0.0.0.0:80", "--no-sendfile", "directory_listing.wsgi:application"]
-
-
