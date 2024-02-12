@@ -44,25 +44,26 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     # Ensure row_values is a list with enough elements
 
     company_name = row_values[0]
-    description = row_values[1]
+    post_slug = row_values[1]
+    description = row_values[2]
     complete_address = row_values[2]
-    company_website = row_values[3]
-    company_phone_number = row_values[4]
-    contact_email = row_values[5]
-    company_hours_raw = row_values[6]
-    company_logo_url = row_values[7]
-    google_map_src = row_values[8]
-    target_location = row_values[9]
-    services_offered = row_values[10]
-    gallery_image_urls = row_values[11]
-    youtube_video_url = convert_to_embed_url(row_values[12])
-    linkedin_url = row_values[13]
-    facebook_url = row_values[14]
-    twitter_url = row_values[15]
-    youtube_url = row_values[16]
-    new_username = row_values[17]
-    user_email = row_values[18]
-    user_password = row_values[19]
+    company_website = row_values[4]
+    company_phone_number = row_values[5]
+    contact_email = row_values[6]
+    company_hours_raw = row_values[7]
+    company_logo_url = row_values[8]
+    google_map_src = row_values[9]
+    target_location = row_values[10]
+    services_offered = row_values[11]
+    gallery_image_urls = row_values[12]
+    youtube_video_url = convert_to_embed_url(row_values[13])
+    linkedin_url = row_values[14]
+    facebook_url = row_values[15]
+    twitter_url = row_values[16]
+    youtube_url = row_values[17]
+    new_username = row_values[18]
+    user_email = row_values[19]
+    user_password = row_values[20]
 
 
 
@@ -524,7 +525,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
 
     post_data = {
         'title': company_name,
-        'slug': company_name.replace(" ", "-").lower(),
+        'slug': post_slug,
         'status': 'publish',
         'content': final_content
     }
