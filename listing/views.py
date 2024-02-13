@@ -607,6 +607,7 @@ def delete_posts(request):
 
         for post_url in links:
             if delete_post_by_url(post_url):
+                print("DELTEEPOST TRUE")
                 try:
                     company_url_instance = CompanyURL.objects.get(generated_url=post_url)
                     company_website = company_url_instance.company_website
@@ -629,6 +630,7 @@ def delete_posts(request):
 
                             deleted_posts_urls.append(post_url)
                             deleted_posts_count += 1
+                            print("deleted_posts_count TRUE")
                 except CompanyURL.DoesNotExist:
                     messages.error(request, f'No company website found for URL: {post_url}')
 
@@ -650,6 +652,8 @@ def delete_posts(request):
 def delete_post_by_url(post_url):
     parsed_url = urlparse(post_url)
     domain = parsed_url.netloc
+    print("POST DOMAIN", domain)
+    print()
 
     # Find the corresponding APIConfig instance
     try:

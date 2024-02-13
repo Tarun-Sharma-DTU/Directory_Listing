@@ -46,7 +46,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     company_name = row_values[0]
     post_slug = row_values[1]
     description = row_values[2]
-    complete_address = row_values[2]
+    complete_address = row_values[3]
     company_website = row_values[4]
     company_phone_number = row_values[5]
     contact_email = row_values[6]
