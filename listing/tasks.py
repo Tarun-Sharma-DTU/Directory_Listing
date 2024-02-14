@@ -3,7 +3,10 @@ import requests
 import base64
 import json
 import time
+from .models import CompanyURL,WebsiteData
 from celery.utils.log import get_task_logger
+from celery.exceptions import Ignore
+
 logger = get_task_logger(__name__)
 
 
@@ -607,3 +610,92 @@ def perform_test_task(self, config_id):
         print(f"Error in perform_test_task for config ID {config_id}: {e}")
         # Store the error status
         TestResult.objects.create(config_id=config_id, status='Error')
+
+from urllib.parse import urlparse
+from .models import APIConfig
+
+@shared_task(bind=True)
+def delete_post_by_url(self, post_url):
+    parsed_url = urlparse(post_url)
+    domain = parsed_url.netloc
+    logger.info("POST DOMAIN: %s", domain)
+
+    try:
+        config = APIConfig.objects.get(website__icontains=domain)
+        post_id = find_post_id_by_url(domain, post_url, config.user, config.password)
+        if post_id:
+            api_url = f"https://{domain}/wp-json/wp/v2/posts/{post_id}"
+            response = requests.delete(api_url, auth=(config.user, config.password))
+            if response.status_code == 200:
+                logger.info("Successfully deleted post: %s", post_url)
+                try:
+                    company_url_instance = CompanyURL.objects.get(generated_url=post_url)
+                    company_website = company_url_instance.company_website
+                    company_url_instance.delete()  # Delete from CompanyURL model
+
+                    website_data_instances = WebsiteData.objects.filter(api_config__website__icontains=domain)
+                    for website_data in website_data_instances:
+                        existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
+                        if company_website in existing_company_websites:
+                            existing_company_websites.remove(company_website)
+                            website_data.company_websites = json.dumps(existing_company_websites) if existing_company_websites else None
+                            website_data.save()
+                    return True  # Indicate success
+                except CompanyURL.DoesNotExist:
+                    logger.warning("No company website found for URL: %s", post_url)
+                    return False
+                    # No need to change the return value as the post has been successfully deleted.
+                except Exception as e:
+                    # Handle unexpected exceptions during the database update.
+                    logger.error("Unexpected error occurred: %s", str(e))
+                    return False
+                    
+            else:  
+                logger.error("Failed to delete post: %s, Status Code: %s", post_url, response.status_code)
+                return False   
+        else:
+            logger.error("Post ID not found for URL: %s", post_url)
+        return False   
+    except APIConfig.DoesNotExist:
+        logger.error("Configuration not found for %s", domain)
+        return False
+    except Exception as e:
+        logger.error("An unexpected error occurred: %s", str(e))
+    return False
+
+
+
+def find_post_id_by_url(domain_name, post_url, username, app_password):
+    base_url = f"https://{domain_name}/wp-json/wp/v2/posts"
+    headers = {
+        'Authorization': f'Basic {username}:{app_password}'
+    }
+    per_page = 100
+    page = 1
+    while True:
+        params = {
+            'per_page': per_page,
+            'page': page
+        }
+        response = requests.get(base_url, headers=headers, params=params)
+        
+        # If a 400 status code is received, stop the search
+        if response.status_code == 400:
+            print("Reached end of posts or encountered an error.")
+            break
+        
+        # Check for successful response
+        if response.status_code == 200:
+            data = response.json()
+            if not data:  # Empty list means no more posts available
+                break
+            # Find the post ID
+            for post in data:
+                if post['link'] == post_url:
+                    return post['id']  # Return the found post ID
+            page += 1  # Increment page number to fetch the next set of posts
+        else:
+            print(f"Error fetching posts: {response.status_code}")
+            break
+
+    return None  # Return None if post not found or if there was an error

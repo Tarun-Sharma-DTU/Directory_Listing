@@ -52,3 +52,14 @@ class PostedWebsite(models.Model):
         if self.website:
             return self.website.website
         return "No website associated"
+    
+
+class TaskInfo(models.Model):
+    post_url = models.URLField(max_length=1024)
+    task_id = models.CharField(max_length=255)
+    status = models.CharField(max_length=50, default='PENDING')
+    error_message = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.post_url} - {self.task_id}"

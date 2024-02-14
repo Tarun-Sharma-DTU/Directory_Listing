@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
-from .tasks import create_company_profile_post, test_post_to_wordpress, delete_from_wordpress, perform_test_task
+from .tasks import create_company_profile_post, test_post_to_wordpress, delete_from_wordpress, perform_test_task, delete_post_by_url
 from django.shortcuts import render
 import openpyxl
-from .models import APIConfig, GeneratedURL, TestResult, WebsiteData, CompanyURL, PostedWebsite
+from .models import APIConfig, GeneratedURL, TestResult, WebsiteData, CompanyURL, PostedWebsite,TaskInfo
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
@@ -82,7 +82,7 @@ def home(request):
         sheet = wb.active
         second_row = sheet[2]
         row_values = [cell.value for cell in second_row]
-        company_website = row_values[3]
+        company_website = row_values[4]
 
         api_configs = APIConfig.objects.filter(site_enable=True).order_by('?')
         GeneratedURL.objects.filter(user=request.user).delete()
@@ -103,7 +103,10 @@ def home(request):
                 
                 # Check for existing company websites
                 existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
+
                 # Root domain matching based on checkbox state
+                print("MAMAMA",existing_company_websites)
+
                 if match_root_domain:
                     new_company_website_root = get_root_domain(company_website)
                     existing_roots = [get_root_domain(url) for url in existing_company_websites]
@@ -111,7 +114,10 @@ def home(request):
                         task_ids.append('skipped_task_' + str(processed_sites_count))
                         continue
                 else:
+                    print("DATADA",existing_company_websites)
+                    print("Company", company_website)
                     if company_website in existing_company_websites:
+                        print("Match Company:", company_website,existing_company_websites )
                         task_ids.append('skipped_task_' + str(processed_sites_count))
                         continue
                            
@@ -178,7 +184,7 @@ def unique_consecutive_domain(request):
         sheet = wb.active
         second_row = sheet[2]
         row_values = [cell.value for cell in second_row]
-        company_website = row_values[3]
+        company_website = row_values[4]
 
         GeneratedURL.objects.filter(user=request.user).delete()
         task_ids = []
@@ -586,8 +592,10 @@ def delete_posts(request):
     deleted_posts_urls = request.session.pop('deleted_posts_urls', []) if 'deleted_posts_urls' in request.session else []
 
     if request.method == 'POST':
+        links = []  # Initialize links list
         excel_file = request.FILES.get('excel_file')
         links_textarea = request.POST.get('links')
+        TaskInfo.objects.all().delete()
 
         if excel_file:
             wb = openpyxl.load_workbook(excel_file)
@@ -601,94 +609,48 @@ def delete_posts(request):
         elif links_textarea:
             links = [link.strip() for link in links_textarea.splitlines()]  # List comprehension to strip spaces
             links = [link + '/' if not link.endswith('/') else link for link in links]  # Ensure each link ends with a slash
-
-
-        deleted_posts_count = 0
-
-        for post_url in links:
-            if delete_post_by_url(post_url):
-                print("DELTEEPOST TRUE")
-                try:
-                    company_url_instance = CompanyURL.objects.get(generated_url=post_url)
-                    company_website = company_url_instance.company_website
-                    company_url_instance.delete()  # Delete from CompanyURL model
-
-                    parsed_url = urlparse(post_url)
-                    domain = parsed_url.netloc
-
-                    website_data_instances = WebsiteData.objects.filter(api_config__website__exact=domain)
-                    for website_data in website_data_instances:
-                        existing_company_websites = json.loads(website_data.company_websites) if website_data.company_websites else []
-                        if company_website in existing_company_websites:
-                            existing_company_websites.remove(company_website)
-                            # After removing all items from the list...
-                            if not existing_company_websites:
-                                website_data.company_websites = None  # This will set the field to NULL in the database
-                            else:
-                                website_data.company_websites = json.dumps(existing_company_websites)
-                            website_data.save()
-
-                            deleted_posts_urls.append(post_url)
-                            deleted_posts_count += 1
-                            print("deleted_posts_count TRUE")
-                except CompanyURL.DoesNotExist:
-                    messages.error(request, f'No company website found for URL: {post_url}')
-
-        if deleted_posts_count > 0:
-            messages.success(request, f'Successfully deleted {deleted_posts_count} posts.')
+            
+        if links:
+            messages.success(request, 'Deletion process started for submitted posts. Check deletion logs for status.')
         else:
-            messages.info(request, 'No posts to delete or deletion failed.')
+            messages.info(request, 'No valid links provided for deletion.')
+        for post_url in links:
+            task = delete_post_by_url.delay(post_url)  # Initiates the task
+            TaskInfo.objects.create(post_url=post_url, task_id=task.id)  # Save task info
 
-        # Add the deleted_posts_urls to the session to make it available after redirect
+
+
+        # Update the session with URLs attempted for deletion
         request.session['deleted_posts_urls'] = deleted_posts_urls
-        # Redirect to the same page to show the result
+
+        # Redirect to avoid POST data resubmission
         return redirect('delete_posts')
 
-    # For GET request or after the deletion, render the page with the context
+    # For GET request or after the POST processing, render the page with the context
     context = {'deleted_posts_urls': deleted_posts_urls}
     return render(request, 'listing/delete_posts.html', context)
 
-    
-def delete_post_by_url(post_url):
-    parsed_url = urlparse(post_url)
-    domain = parsed_url.netloc
-    print("POST DOMAIN", domain)
-    print()
 
-    # Find the corresponding APIConfig instance
-    try:
-        config = APIConfig.objects.get(website__icontains=domain)
-    except APIConfig.DoesNotExist:
-        print(f"Configuration not found for {domain}")
-        return False  # Indicate failure
+def check_delete_task_status(request):
+    task_info_objs = TaskInfo.objects.all()
+    results = []
 
-    post_id = find_post_id_by_url(domain, post_url, config.user, config.password)
-    if post_id:
-        api_url = f"https://{domain}/wp-json/wp/v2/posts/{post_id}"
-        response = requests.delete(api_url, auth=(config.user, config.password))
-        if response.status_code == 200:
-            print(f"Successfully deleted post: {post_url}")
-            return True  # Indicate success
-        else:
-            print(f"Failed to delete post: {post_url}, Status Code: {response.status_code}")
-    else:
-        print(f"Post ID not found for URL: {post_url}")
+    for info in task_info_objs:
+        task_id = info.task_id
+        task_result = AsyncResult(task_id)
+        
+        # Only add to the results if the task is ready/completed
+        if task_result.ready():
+            success = task_result.result  # This will be True or False as returned by the task
+            info.status = 'SUCCESS' if success else 'FAILED'
+            info.save()  # Update the status in the database
 
-    return False  # Indicate failure
+            results.append({
+                'url': info.post_url,
+                'status': info.status,
+            })
 
-def find_post_id_by_url(domain_name, post_url, username, app_password):
-    post_json = f"https://{domain_name}/wp-json/wp/v2/posts"
-    response = requests.get(post_json)
-    post_id = None
-    if response.status_code == 200:
-        data = response.json()
-        # Find the post ID       
-        for post in data:
-            if post['link'] == post_url:
-                post_id = post['id']
-                break
-
-    return post_id
+    return JsonResponse({'tasks': results})
     
 @login_required
 def flash_posted_website(request):

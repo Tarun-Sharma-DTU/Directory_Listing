@@ -1,4 +1,4 @@
-from .models import APIConfig, GeneratedURL, WebsiteData, CompanyURL, PostedWebsite
+from .models import APIConfig, GeneratedURL, WebsiteData, CompanyURL, PostedWebsite,TaskInfo
 from django.contrib import admin
 
 
@@ -10,3 +10,4 @@ admin.site.register(GeneratedURL)
 admin.site.register(WebsiteData)
 admin.site.register(CompanyURL)
 admin.site.register(PostedWebsite)
+admin.site.register(TaskInfo)
