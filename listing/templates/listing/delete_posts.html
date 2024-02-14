@@ -87,11 +87,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 });
 
-                // If all tasks have completed, display an alert and clear the interval
-                if (allTasksCompleted) {
-                    clearInterval(intervalId); // Clear the interval to stop checking
-                    alert("All deletion tasks have been completed."); // Display an alert
-                }
+                // Removed the block that clears the interval and displays an alert
             })
             .catch(error => {
                 console.error('Error fetching task statuses:', error);
@@ -100,6 +96,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     updateTaskStatuses(); // Run initially
 });
+
 </script>
 
 
