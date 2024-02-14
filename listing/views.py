@@ -609,7 +609,7 @@ def delete_posts(request):
         elif links_textarea:
             links = [link.strip() for link in links_textarea.splitlines()]  # List comprehension to strip spaces
             links = [link + '/' if not link.endswith('/') else link for link in links]  # Ensure each link ends with a slash
-            
+
         if links:
             messages.success(request, 'Deletion process started for submitted posts. Check deletion logs for status.')
         else:
@@ -634,24 +634,28 @@ def delete_posts(request):
 def check_delete_task_status(request):
     task_info_objs = TaskInfo.objects.all()
     results = []
+    all_tasks_completed = True  # Assume all tasks are completed initially
 
     for info in task_info_objs:
         task_id = info.task_id
         task_result = AsyncResult(task_id)
-        
-        # Only add to the results if the task is ready/completed
+
         if task_result.ready():
             success = task_result.result  # This will be True or False as returned by the task
             info.status = 'SUCCESS' if success else 'FAILED'
             info.save()  # Update the status in the database
+        else:
+            all_tasks_completed = False  # If any task isn't ready, mark as not all completed
 
-            results.append({
-                'url': info.post_url,
-                'status': info.status,
-            })
+        results.append({
+            'url': info.post_url,
+            'status': info.status,
+        })
 
-    return JsonResponse({'tasks': results})
-    
+    return JsonResponse({
+        'tasks': results,
+        'all_tasks_completed': all_tasks_completed  # Add this to signal if all tasks are done
+    })
 @login_required
 def flash_posted_website(request):
     if request.method == "POST":

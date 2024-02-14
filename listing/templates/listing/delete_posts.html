@@ -41,6 +41,7 @@
     <table id="taskTable" class="task-table">
         <thead>
             <tr>
+                <th>#</th> <!-- Table header for index numbers -->
                 <th>URL</th>
                 <th>Status</th>
             </tr>
@@ -51,37 +52,54 @@
     </table>
 </div>
 
+
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function() {
+    let intervalId = setInterval(updateTaskStatuses, 5000); // Set up the interval to update task statuses
+
     function updateTaskStatuses() {
         fetch('/check_delete_status/')
             .then(response => response.json())
             .then(data => {
                 const taskTableBody = document.getElementById('taskTable').getElementsByTagName('tbody')[0];
-                taskTableBody.innerHTML = ''; // Clear current list
+                taskTableBody.innerHTML = ''; // Clear the current list
 
-                data.tasks.forEach(task => {
+                let allTasksCompleted = true; // Assume all tasks are completed
+
+                data.tasks.forEach((task, index) => {
                     const row = taskTableBody.insertRow();
-                    const cellUrl = row.insertCell(0);
-                    const cellStatus = row.insertCell(1);
+                    const cellIndex = row.insertCell(0);
+                    const cellUrl = row.insertCell(1);
+                    const cellStatus = row.insertCell(2);
 
-                    cellUrl.textContent = task.url;
-                    cellStatus.textContent = task.status;
+                    cellIndex.textContent = index + 1; // Set index number
+                    cellUrl.textContent = task.url; // Set URL
+                    cellStatus.textContent = task.status; // Set status
 
-                    if (task.status === 'SUCCESS') {
-                        row.className = 'success';
-                    } else if (task.status === 'FAILED') {
-                        row.className = 'failed';
+                    // Add class based on status for styling
+                    row.classList.add(task.status.toLowerCase());
+                    // Debugging line to check each task status
+                    console.log(`Task ${index + 1}: ${task.url} - ${task.status}`);
+
+                    // If any task is not ready, then not all tasks are completed
+                    if (task.status !== 'SUCCESS' && task.status !== 'FAILED') {
+                        allTasksCompleted = false;
                     }
                 });
+
+                // If all tasks have completed, display an alert and clear the interval
+                if (allTasksCompleted) {
+                    clearInterval(intervalId); // Clear the interval to stop checking
+                    alert("All deletion tasks have been completed."); // Display an alert
+                }
             })
-            .catch(error => console.error('Error fetching task statuses:', error));
+            .catch(error => {
+                console.error('Error fetching task statuses:', error);
+                clearInterval(intervalId); // Clear the interval in case of an error
+            });
     }
-
-    updateTaskStatuses();
-    setInterval(updateTaskStatuses, 5000); // Update every 5 seconds
+    updateTaskStatuses(); // Run initially
 });
-
 </script>
 
 
