@@ -6,6 +6,8 @@ import time
 from .models import CompanyURL,WebsiteData
 from celery.utils.log import get_task_logger
 from celery.exceptions import Ignore
+from requests.auth import HTTPBasicAuth
+
 
 logger = get_task_logger(__name__)
 
@@ -677,7 +679,9 @@ def find_post_id_by_url(domain_name, post_url, username, app_password):
             'per_page': per_page,
             'page': page
         }
-        response = requests.get(base_url, headers=headers, params=params)
+        response = requests.get(base_url, auth=HTTPBasicAuth(username, app_password), params=params)
+        print(response.text)
+        print(username)
         
         # If a 400 status code is received, stop the search
         if response.status_code == 400:
