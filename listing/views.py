@@ -114,7 +114,6 @@ def home(request):
                         task_ids.append('skipped_task_' + str(processed_sites_count))
                         continue
                 else:
-                    print("DATADA",existing_company_websites)
                     print("Company", company_website)
                     if company_website in existing_company_websites:
                         print("Match Company:", company_website,existing_company_websites )

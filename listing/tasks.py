@@ -150,7 +150,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
               <h2>Contact Information</h2>
                 <p><i class="fas fa-map-marker-alt"></i> Address: {complete_address}</p>
                 <p><i class="fas fa-globe"></i> Website: <a href="{company_website}" target="_blank">{company_website}</a></p>
-                <p><i class="fas fa-phone"></i> Phone: <a href="tel:+19312578004">{company_phone_number}</a></p>
+                <p><i class="fas fa-phone"></i> Phone: <a href="tel:{company_phone_number}">{company_phone_number}</a></p>
                 <p><i class="fas fa-envelope"></i> Email: <a href="mailto:{contact_email}">{contact_email}</a></p>
               <h2>Find Us On The Map</h2>
               {google_map_src}
@@ -549,6 +549,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
         return Author_name, post_link, website, company_website
     else:
         print("Failed to create post.")
+        print(response.text)
         return Author_name, None, website, company_website
 
 
