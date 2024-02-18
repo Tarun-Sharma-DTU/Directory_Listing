@@ -87,7 +87,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
           </div>"""
 
     if youtube_video_url:
-        youtube_template_1 = """<div class="company-info">
+        youtube_template_1 = f"""<div class="company-info">
             <h2>Watch Our Video</h2>
             <iframe src="{youtube_video_url}" style="width: 65%; height: 400px;" allowfullscreen></iframe>
           </div>"""
@@ -101,19 +101,19 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     youtube_link_html_1 = ""
 
     if linkedin_url:
-        linkedin_link_html_1 = """<a href="{linkedin_url}" target="_blank" rel="noopener"><i class="fab fa-linkedin-in"></i></a>"""
+        linkedin_link_html_1 = f"""<a href="{linkedin_url}" target="_blank" rel="noopener"><i class="fab fa-linkedin-in"></i></a>"""
     else:
         linkedin_link_html_1 = ""
     if facebook_url:
-        facebook_link_html_1 = """<a href="{facebook_url}" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>"""
+        facebook_link_html_1 = f"""<a href="{facebook_url}" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>"""
     else:
         facebook_link_html_1= ""
     if twitter_url:
-        twitter_link_html_1 = """<a href="{twitter_url}" target="_blank" rel="noopener"><i class="fab fa-twitter"></i></a>"""
+        twitter_link_html_1 = f"""<a href="{twitter_url}" target="_blank" rel="noopener"><i class="fab fa-twitter"></i></a>"""
     else:
         twitter_link_html_1 = ""
     if youtube_url:
-        youtube_link_html_1 = """<a href="{youtube_url}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i></a>"""
+        youtube_link_html_1 = f"""<a href="{youtube_url}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i></a>"""
     else:
         youtube_link_html_1 = ""
 
@@ -224,7 +224,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     hours_html_2 = "".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
 
     if youtube_video_url:
-        youtube_template_2 = """<!-- YouTube Video Embed Section -->
+        youtube_template_2 = f"""<!-- YouTube Video Embed Section -->
     <div id="youtubeVideoSection" class="youtube-video-section">
         <h2 class="feature-title">Our YouTube Video</h2>
         <div class="youtube-video-embed">
@@ -263,7 +263,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
             </div>
             <div class="info-item">
               <h3>Company Phone Number</h3>
-              <p><a href="{company_phone_number}">{company_phone_number}</a></p>
+              <p><a href="tel:{company_phone_number}">{company_phone_number}</a></p>
             </div>
             <div class="info-item">
               <h3>Company Email</h3>
@@ -346,7 +346,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
         twitter_link_html_3 = ""
 
     if youtube_video_url:
-        youtube_template_3 = """<div><ul class="nav nav-tabs" id="myTab" role="tablist">
+        youtube_template_3 = f"""<div><ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
               <button class="nav-link active" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube" type="button" role="tab" aria-controls="gallery" aria-selected="false">Youtube</button>
       </li>
