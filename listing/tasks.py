@@ -326,7 +326,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
         facebook_link_html_3 = ""
         
     if youtube_url:
-        youtube_link_html_3 = f"""<a title="YouTube" class="button-social has-action" href="https://www.youtube.com/channel/UCFjaJZ-sktqV9LJqSSVEwCw" target="_blank">
+        youtube_link_html_3 = f"""<a title="YouTube" class="button-social has-action" href="{youtube_url}" target="_blank">
               <i class="fab fa-youtube"></i></a>"""
     else:
         youtube_link_html_3 = ""
