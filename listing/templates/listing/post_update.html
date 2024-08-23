@@ -7,8 +7,8 @@
 {% if messages %}
 <div class="message-container">
     {% for message in messages %}
-    <div class="{{ message.tags }}">
-        {{ message }}
+    <div class="{% if message.tags == 'success' %}alert alert-success{% else %}alert alert-danger{% endif %}">
+        {{ message.message }}
     </div>
     {% endfor %}
 </div>
@@ -28,62 +28,12 @@
         <!-- File Upload -->
         <div class="mb-3">
             <label for="excelFileUpload" class="form-label">Upload Excel File for Data</label>
-            <input class="form-control" type="file" id="excelFileUpload" name="excel_file" accept=".xlsx, .xls">
-        </div>
-
-        <!-- Placeholder for Template Number -->
-        <div class="mb-3">
-            <label for="templateNumber" class="form-label">Template Number</label>
-            <input type="number" class="form-control" id="templateNumber" name="template_number" placeholder="Enter the template number...">
+            <input class="form-control" type="file" id="excelFileUpload" name="excel_file" accept=".xlsx, .xls" required>
         </div>
 
         <!-- Submit Button -->
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 </div>
-
-<div id="taskStatusContainer">
-    <h2>Update Task Status</h2>
-    <div id="taskStatusList">
-        <!-- Task statuses will be appended here dynamically -->
-    </div>
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    let intervalId = setInterval(updateTaskStatuses, 8000); // Set up the interval to update task statuses
-
-    function updateTaskStatuses() {
-        fetch('/check_update_status/')
-            .then(response => response.json())
-            .then(data => {
-                const taskStatusList = document.getElementById('taskStatusList');
-                taskStatusList.innerHTML = ''; // Clear the current list
-
-                let allTasksCompleted = true; // Assume all tasks are completed
-
-                data.tasks.forEach((task, index) => {
-                    const statusItem = document.createElement('div');
-                    statusItem.textContent = `Task ${index + 1}: ${task.url} - ${task.status} (Template ${task.template_number})`;
-                    
-                    // Add class based on status for styling
-                    statusItem.classList.add(task.status.toLowerCase());
-                    
-                    taskStatusList.appendChild(statusItem);
-
-                    // If any task is not ready, then not all tasks are completed
-                    if (task.status !== 'SUCCESS' && task.status !== 'FAILED') {
-                        allTasksCompleted = false;
-                    }
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching task statuses:', error);
-                clearInterval(intervalId); // Clear the interval in case of an error
-            });
-    }
-    updateTaskStatuses(); // Run initially
-});
-</script>
 
 {% endblock %}

@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .tasks import create_company_profile_post, test_post_to_wordpress, delete_from_wordpress, perform_test_task, delete_post_by_url, find_post_id_by_url
+from .tasks import create_company_profile_post, test_post_to_wordpress, delete_from_wordpress, perform_test_task, delete_post_by_url, find_post_id_by_url, update_company_profile_post
 from django.shortcuts import render
 import openpyxl
 from .models import APIConfig, GeneratedURL, TestResult, WebsiteData, CompanyURL, PostedWebsite,TaskInfo
@@ -672,52 +672,48 @@ def flash_posted_website(request):
     # Redirect to a certain page after the action
     return HttpResponseRedirect(reverse('unique_consecutive_domain'))
 
+
 @login_required
 def post_update_view(request):
+    messages = []
+
     if request.method == 'POST':
-        # Handle the form data
         post_urls = request.POST.get('post_urls').splitlines()  # Assuming multiple URLs, one per line
-        html_template = int(request.POST.get('template_number'))
         excel_file = request.FILES.get('excel_file')
 
-        # Validate template number
-        if html_template not in [1, 2, 3]:
-            return render(request, 'post_update.html', {'messages': ["Invalid template number. Please select 1, 2, or 3."]})
-
-        # Load the Excel file and read the specific sheet and row
         if excel_file:
-            wb = openpyxl.load_workbook(excel_file, data_only=True)
-            sheet = wb.active
-            second_row = sheet[2]
-            row_values = [cell.value for cell in second_row]
+            try:
+                wb = openpyxl.load_workbook(excel_file, data_only=True)
+                sheet = wb.active
+                second_row = sheet[2]
+                row_values = [cell.value for cell in second_row]
+            except Exception as e:
+                messages.append({'tags': 'error', 'message': f"Failed to read Excel file: {str(e)}"})
+                return render(request, 'listing/post_update.html', {'messages': messages})
 
-            # Process each URL
             for post_url in post_urls:
-                # Extract the domain from the URL
                 parsed_url = urlparse(post_url)
                 domain = parsed_url.netloc
 
-                # Fetch API configuration from the database
                 try:
                     config = APIConfig.objects.get(website__icontains=domain)
                 except APIConfig.DoesNotExist:
-                    print(f"No API configuration found for domain: {domain}")
-                    continue  # Skip to the next URL if config is not found
-
-                # Find the post ID by URL using the retrieved credentials
-                post_id = find_post_id_by_url(domain, post_url, config.user, config.password)
-
-                if post_id is None:
-                    print(f"Post with URL '{post_url}' not found.")
+                    messages.append({'tags': 'error', 'message': f"No API configuration found for domain: {domain}"})
                     continue
 
-                # The URL for updating the specific post
+                post_id = find_post_id_by_url(domain, post_url, config.user, config.password)
+                if post_id is None:
+                    messages.append({'tags': 'error', 'message': f"Post with URL '{post_url}' not found."})
+                    continue
+
                 json_url = f"https://{domain}/wp-json/wp/v2/posts/{post_id}"
 
-                # Call the function to create/update the post
-                create_company_profile_post(row_values, json_url, config.website, config.user, config.password, html_template)
+                # Call the update function and capture the status and message
+                status, message = update_company_profile_post(row_values, json_url, config.website, config.user, config.password, config.template_no, post_id)
+                
+                # Append the message to the messages list with appropriate tag
+                messages.append({'tags': status, 'message': message})
 
-        # Render the template again with a success message or any other feedback
-        return render(request, 'listing/post_update.html', {'messages': ["Post update completed."]})
-    
+        return render(request, 'listing/post_update.html', {'messages': messages})
+
     return render(request, 'listing/post_update.html')

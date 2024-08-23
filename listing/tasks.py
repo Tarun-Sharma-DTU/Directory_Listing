@@ -713,7 +713,6 @@ def update_company_profile_post(row_values, json_url, website, user, password, h
     # Ensure row_values is a list with enough elements
 
     company_name = row_values[0]
-    post_slug = row_values[1]
     description = row_values[2]
     complete_address = row_values[3]
     company_website = row_values[4]
@@ -1141,74 +1140,22 @@ def update_company_profile_post(row_values, json_url, website, user, password, h
         final_content = html_3
         
 
-
-    # Data for creating a new user with the 'author' role
-    new_user_data = {
-        'username': new_username,
-        'email': user_email,
-        'password': user_password,
-        'roles': ['author']  # Set the role to 'author'
-    }
-
-    # Send the request to create a new user
-    print("USER", new_username)
-    print("mail", user_email)
-    print("PASS:", user_password)
-
-
-
-    # Initialize a flag to determine whether we have a valid user ID
-    valid_user_id = False
-    Author_name = "Default"
-
-    # Only attempt to create or fetch a user if all user details are provided
-    if new_username and user_email and user_password:
-
-        new_user_data = {
-            'username': new_username,
-            'email': user_email,
-            'password': user_password,
-            'roles': ['author']  # Assuming the platform supports setting roles via API
-        }
-
-        # Attempt to create a new user
-        user_response = requests.post(json_url + '/users', headers=header, json=new_user_data)
-
-        if user_response.status_code == 201:
-            print('New user created successfully!')
-            new_user_id = user_response.json()['id']
-            valid_user_id = True
-            Author_name = new_username
-        else:
-            print('User already exists. Fetching existing user ID...')
-            user_query_params = {'search': new_username}
-            existing_user_response = requests.get(json_url + '/users', headers=header, params=user_query_params)
-
-            if existing_user_response.status_code == 200 and existing_user_response.json():
-                new_user_id = existing_user_response.json()[0]['id']
-                print('Existing user ID:', new_user_id)
-                valid_user_id = True
-                Author_name = new_username
-            else:
-                print('Failed to fetch existing user. Proceeding without specifying an author.')
-
     post_data = {
       'title': company_name,
       'status': 'publish',
       'content': final_content
-             }
-    if valid_user_id:
-        post_data['author'] = new_user_id
+             }   
+
 
     # Send the update request (PUT instead of POST)
-    response = requests.put(json_url + f'/posts/{post_id}', headers=header, json=post_data)
+    response = requests.put(json_url, headers=header, json=post_data)
 
-    # Handle the response
+     # Handle the response
     if response.status_code == 200:
         print("Post updated successfully.")
         post_link = response.json().get('link')
-        return Author_name, post_link, website, company_website
+        return 'success', f"Post updated successfully. Post link: {post_link}"
     else:
         print("Failed to update post.")
         print(response.text)
-        return Author_name, None, website, company_website
+        return 'error', f"Failed to update post. Error: {response.text}"
