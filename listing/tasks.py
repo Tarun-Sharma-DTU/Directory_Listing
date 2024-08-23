@@ -703,3 +703,512 @@ def find_post_id_by_url(domain_name, post_url, username, app_password):
             break
 
     return None  # Return None if post not found or if there was an error
+  
+@shared_task
+def update_company_profile_post(row_values, json_url, website, user, password, html_template, post_id):
+    credentials = user + ':' + password
+    token = base64.b64encode(credentials.encode())
+    header = {'Authorization': 'Basic ' + token.decode('utf-8'), 'Content-Type': 'application/json'}
+
+    # Ensure row_values is a list with enough elements
+
+    company_name = row_values[0]
+    post_slug = row_values[1]
+    description = row_values[2]
+    complete_address = row_values[3]
+    company_website = row_values[4]
+    company_phone_number = row_values[5]
+    contact_email = row_values[6]
+    company_hours_raw = row_values[7]
+    company_logo_url = row_values[8]
+    google_map_src = row_values[9]
+    target_location = row_values[10]
+    services_offered = row_values[11]
+    gallery_image_urls = row_values[12]
+    youtube_video_url = convert_to_embed_url(row_values[13])
+    linkedin_url = row_values[14]
+    facebook_url = row_values[15]
+    twitter_url = row_values[16]
+    youtube_url = row_values[17]
+    new_username = row_values[18]
+    user_email = row_values[19]
+    user_password = row_values[20]
+
+
+
+    print(youtube_url)
+    # Processing company hours
+    company_hours = company_hours_raw.split('\n') if company_hours_raw else []
+    hours_html = "".join(f"<span><i class='fas fa-clock'></i> {day}</span><br>" for day in company_hours)
+    # Processing gallery images
+    galleries = ""
+    if gallery_image_urls:
+        url_list = [url.strip() for url in gallery_image_urls.split(',')]
+        gallery_images_html = "".join([f'<img src="{url}" alt="Photo {index + 1}">' for index, url in enumerate(url_list)])
+        galleries = f"""<div class="company-info">
+            <h2>Our Gallery</h2>
+            <div class="gallery">{gallery_images_html}</div>
+          </div>"""
+
+    if youtube_video_url:
+        youtube_template_1 = f"""<div class="company-info">
+            <h2>Watch Our Video</h2>
+            <iframe src="{youtube_video_url}" style="width: 65%; height: 400px;" allowfullscreen></iframe>
+          </div>"""
+    else:
+      youtube_template_1 = ""
+
+
+    linkedin_link_html_1 = ""
+    facebook_link_html_1 = ""
+    twitter_link_html_1 = ""
+    youtube_link_html_1 = ""
+
+    if linkedin_url:
+        linkedin_link_html_1 = f"""<a href="{linkedin_url}" target="_blank" rel="noopener"><i class="fab fa-linkedin-in"></i></a>"""
+    else:
+        linkedin_link_html_1 = ""
+    if facebook_url:
+        facebook_link_html_1 = f"""<a href="{facebook_url}" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>"""
+    else:
+        facebook_link_html_1= ""
+    if twitter_url:
+        twitter_link_html_1 = f"""<a href="{twitter_url}" target="_blank" rel="noopener"><i class="fab fa-twitter"></i></a>"""
+    else:
+        twitter_link_html_1 = ""
+    if youtube_url:
+        youtube_link_html_1 = f"""<a href="{youtube_url}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i></a>"""
+    else:
+        youtube_link_html_1 = ""
+
+    if not (linkedin_url or facebook_url or twitter_url or youtube_url):
+        social_template_1 = ""
+    else:
+        social_template_1 = f"""<div class="company-info">
+            <h2>Connect With Us</h2>
+            <div class="social-media">
+             {linkedin_link_html_1}
+             {facebook_link_html_1}
+             {twitter_link_html_1}
+             {youtube_link_html_1}
+            </div>
+          </div>"""
+        
+    # Constructing the HTML content
+    html_1 = f"""<!-- wp:html --><div class="container">
+          <div class="company-profile-header">
+            <img src="{company_logo_url}" alt="Company Logo">
+          </div>
+          <div class="info-and-map">
+            <div class="info-block">
+            <div class="highlight">
+              <h2>About the Company</h2>
+                <p>{description}</p>
+              </div>
+              <div class="highlight">
+                <h2>Opening Hours</h2>
+                <p>{hours_html}</p>
+              </div>
+            </div>
+            <div class="map-container">
+              <h2>Contact Information</h2>
+                <p><i class="fas fa-map-marker-alt"></i> Address: {complete_address}</p>
+                <p><i class="fas fa-globe"></i> Website: <a href="{company_website}" target="_blank">{company_website}</a></p>
+                <p><i class="fas fa-phone"></i> Phone: <a href="tel:{company_phone_number}">{company_phone_number}</a></p>
+                <p><i class="fas fa-envelope"></i> Email: <a href="mailto:{contact_email}">{contact_email}</a></p>
+              <h2>Find Us On The Map</h2>
+              {google_map_src}
+            </div>
+          </div>
+         <div class="highlight">
+            <h2>Brands/Services Offered</h2>
+            <p>{services_offered}</p>
+          </div>
+            {galleries}
+
+         {youtube_template_1}
+        {social_template_1}
+          
+
+        </div><!-- /wp:html -->"""
+    
+        
+    galleries_2 = ""
+    img_list = ""  # Initialize img_list here
+
+    if gallery_image_urls:
+        url_list = [url.strip() for url in gallery_image_urls.split(',')]
+        for i, url in enumerate(url_list, start=1):
+            img_list += f'<div class="gallery-item"><img src="{url}" alt="Gallery Image {i}"></div>\n'
+
+    galleries_2 = f'<section id="gallerySection" class="gallery-section"><h2 class="feature-title">Gallery</h2><div class="gallery-content">{img_list}</div></section>'
+
+   # Initialize an empty string to store the HTML code
+    social_media_buttons = ""
+
+    # Check if each URL has a value and generate the corresponding HTML
+    print("LInkedin URL:", linkedin_url)
+    if linkedin_url:
+        social_media_buttons += f'''
+          <!-- LinkedIn -->
+          <a title="LinkedIn" class="button-social has-action" href="{linkedin_url}" target="_blank">
+            <i class="fab fa-linkedin-in"></i>
+          </a>
+        '''
+
+    if facebook_url:
+        social_media_buttons += f'''
+          <!-- Facebook -->
+          <a title="Facebook" class="button-social has-action" href="{facebook_url}" target="_blank">
+            <i class="fab fa-facebook-f"></i>
+          </a>
+        '''
+
+    if twitter_url:
+        social_media_buttons += f'''
+          <!-- Twitter -->
+          <a title="Twitter" class="button-social has-action" href="{twitter_url}" target="_blank">
+            <i class="fab fa-twitter"></i>
+          </a>
+        '''
+
+    if youtube_url:
+        social_media_buttons += f'''
+          <!-- YouTube -->
+          <a title="YouTube" class="button-social has-action" href="{youtube_url}" target="_blank">
+           <i class="fab fa-youtube"></i>
+          </a>
+        '''
+
+    # Check if any social media buttons were generated
+    if social_media_buttons:
+        # Create the enclosing <div> for the buttons
+        social_media_buttons = f'<section class="section-wrap" id="socialMediaLinks"><h2 class="feature-title">Digital & Online Presence</h2><div class="social-presence"><ul><li class="social-action"><div class="btn-group">\n{social_media_buttons}\n</div></li></ul></div></section>'
+    
+    hours_html_2 = "".join(f"<span><i class='fas fa-clock'></i> {day}</span>" for day in company_hours)
+
+    if youtube_video_url:
+        youtube_template_2 = f"""<!-- YouTube Video Embed Section -->
+    <div id="youtubeVideoSection" class="youtube-video-section">
+        <h2 class="feature-title">Our YouTube Video</h2>
+        <div class="youtube-video-embed">
+            <iframe width="560" height="315" src="{youtube_video_url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+    </div>"""
+    else:
+        youtube_template_2 = ""
+
+    html_2 = f"""<!-- wp:html --><div class="business-profile">
+    <div class="navigation-menu">
+      <div class="menu-links">
+        <a href="#companyOverview" class="link-item active">About Company</a>
+        <a href="#gallerySection" class="link-item">Gallery</a>
+        <a href="#socialMediaLinks" class="link-item">Social Media</a>
+      </div>
+    </div>
+
+    <div id="companyOverview" class="profile-overview">
+        <div class="overview-content">
+          <h2 class="section-title">Business Overview</h2>
+          <div class="business-description">
+            <p>
+              {description}
+            </p>
+          </div>
+          <div class="services-offered">
+            <h3 class="services-title">Services offered</h3>
+            <span>{services_offered}</span>
+          </div>
+
+          <div class="additional-info">
+            <div class="info-item">
+              <h3>Company Website</h3>
+              <p><a href="{company_website}">{company_website}</a></p>
+            </div>
+            <div class="info-item">
+              <h3>Company Phone Number</h3>
+              <p><a href="tel:{company_phone_number}">{company_phone_number}</a></p>
+            </div>
+            <div class="info-item">
+              <h3>Company Email</h3>
+              <p><a href="mailto:{contact_email}">{contact_email}</a></p>
+            </div>
+            <div class="info-item">
+              <h3>Address</h3>
+              <p>{complete_address}</p>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <!-- Opening Hours Section -->
+    <div class="opening-hours">
+        <div class="hours-content">
+            <h2 class="section-title">Opening Hours</h2>
+            <div class="hours-list">
+                {hours_html_2}
+            </div>
+        </div>
+    </div>
+
+    {galleries_2}
+
+    {youtube_template_2}
+
+    <div id="mapsection" class="map-location-section">
+        <h2 class="feature-title">Find Us On Map</h2>
+        <div class="google-maps-embed">
+            {google_map_src}
+        </div>
+    </div>
+
+    {social_media_buttons} 
+</div>
+<!-- /wp:html -->"""
+    
+    html_img_tags = ""
+    # Split the URLs and remove any leading/trailing whitespace
+    url_list = [url.strip() for url in gallery_image_urls.split(',')]
+
+    # Iterate over the image URLs and create HTML img tags
+    for i, url in enumerate(url_list, start=1):
+        html_img_tags += f'<img decoding="async" src="{url}" alt="Photo {i}">\n'
+
+
+
+    # Generate the HTML for each image
+    gallery_images_html_3 = "".join([
+        f'<img decoding="async" src="{url}" alt="Gallery image {index + 1}">'
+        for index, url in enumerate(url_list)
+    ])
+
+
+    if facebook_url:
+        facebook_link_html_3 = f"""<a title="Facebook" class="button-social has-action" href="{facebook_url}" target="_blank">
+              <i class="fab fa-facebook-f"></i></a>"""
+    else:
+        facebook_link_html_3 = ""
+        
+    if youtube_url:
+        youtube_link_html_3 = f"""<a title="YouTube" class="button-social has-action" href="{youtube_url}" target="_blank">
+              <i class="fab fa-youtube"></i></a>"""
+    else:
+        youtube_link_html_3 = ""
+                  
+    # Check if linkedin_url is not empty
+    if linkedin_url:
+        linkedin_link_html_3 = f"""<a title="LinkedIn" class="button-social has-action" href="{linkedin_url}" target="_blank">
+              <i class="fab fa-linkedin"></i></a>"""
+    else:
+        linkedin_link_html_3 = ""
+
+    # Check if twitter_url is not empty
+    if twitter_url:
+        twitter_link_html_3 = f"""<a title="Twitter" class="button-social has-action" href="{twitter_url}" target="_blank">
+              <i class="fa fa-twitter"></i></a>"""  # Note: Change 'fa fa-times' to 'fa fa-twitter'
+    else:
+        twitter_link_html_3 = ""
+
+    if youtube_video_url:
+        youtube_template_3 = f"""<div><ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube" type="button" role="tab" aria-controls="gallery" aria-selected="false">Youtube</button>
+      </li>
+    </ul>
+    </div>
+    <div class="tab-content" id="myTabContentYoutube">
+      <div class="tab-pane fade show active" id="youtube" role="tabpanel" aria-labelledby="youtube-tab">
+          <div class="youtube-embed">
+            <iframe width="100%" height="auto" src="{youtube_video_url}" frameborder="0" allowfullscreen></iframe>
+          </div>
+      </div>
+  </div>"""
+    else:
+        youtube_template_3 = ""
+
+    html_3 = f"""<!-- wp:html --><div class="profile-box">
+    <div class="container">
+    <div class="row">
+    <div class="col-12 col-lg-12 col-xl-9 float-left">
+      <div class="dc-docsingle-header">
+        <figure class="dc-docsingleimg">
+        <img class="dc-ava-detail entered lazyloaded" src="{company_logo_url}" alt="Stuart Gordon" data-lazy-src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-255x250.jpg" data-ll-status="loaded"><noscript><img class="dc-ava-detail" src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-255x250.jpg" alt="Stuart Gordon"></noscript>
+        <img class="dc-ava-detail-2x" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E" alt="Stuart Gordon" data-lazy-src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-545x428.jpg"><noscript><img class="dc-ava-detail-2x" src="https://doctortoyou.b-cdn.net/wp-content/themes/doctreat/images/dravatar-545x428.jpg" alt="Stuart Gordon"></noscript>
+    
+            </figure>
+      <div class="dc-docsingle-content">
+      <div class="dc-title">
+                    <h2><a href="{company_website}" data-wpel-link="internal">{company_name}</a>
+            <i class="far fa-check-circle dc-awardtooltip dc-tipso tipso_style" data-tipso="Verified user"></i>
+              </h2>
+    
+      </div>
+            <div class="rd-description">
+          <p>{description}</p>
+        </div>
+    
+    </div>
+    </div>
+    <div>
+      <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab" aria-controls="services" aria-selected="true">Offered Services</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab" aria-controls="social" aria-selected="false">Social Presence</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="opening-tab" data-bs-toggle="tab" data-bs-target="#opening" type="button" role="tab" aria-controls="opening" aria-selected="false">Opening Hours</button>
+        </li>
+    </ul>
+    </div>
+          
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade show active" id="services" role="tabpanel" aria-labelledby="services-tab">
+       {services_offered}
+      </div>
+    
+        <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
+              <div class="btn-group">
+              {facebook_link_html_3}
+              {youtube_link_html_3}
+              {linkedin_link_html_3}
+              {twitter_link_html_3}
+          </div>
+            </div>
+        <div class="tab-pane fade" id="opening" role="tabpanel" aria-labelledby="opening-tab">
+           <p>{hours_html}</p>
+        </div>           
+          </div>
+          <div>
+          <ul class="nav nav-tabs" id="myTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab" aria-controls="contact" aria-selected="false">Contact Details</button>
+              </li>
+          </ul>
+          </div>
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade show active" id="contact" role="tabpanel" aria-labelledby="contact-tab">
+    <p><i class="fas fa-globe"></i> Website: <a href="{company_website}" target="_blank" rel="noopener">{company_website}</a></p>
+          <p><i class="fas fa-phone"></i> Phone: <a href="tel:{company_phone_number}">{company_phone_number}</a></p>
+          <p><i class="fas fa-envelope"></i> Email: <a href="mailto:{contact_email}">{contact_email}</a></p>
+        </div>
+    </div>
+    <div><ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="gallery-tab" data-bs-toggle="tab" data-bs-target="#gallery" type="button" role="tab" aria-controls="gallery" aria-selected="false">Gallery</button>
+            </li>
+    </ul>
+    </div>
+    <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="gallery" role="tabpanel" aria-labelledby="gallery-tab">
+              <div class="gallery">
+                {gallery_images_html_3}
+              </div>
+            </div>  
+          </div>
+    {youtube_template_3}            
+    </div>
+    <div class="col-12 col-md-6 col-lg-6 col-xl-3 float-left">
+      <aside id="dc-sidebar" class="dc-sidebar dc-sidebar-grid float-left mt-xl-0">
+        <div class="map-container">
+           {google_map_src}
+      </div>							
+    <div class="dc-contactinfobox dc-locationbox">
+                <ul class="dc-contactinfo">
+                    <li class="dcuser-location">
+                    <i class="lnr lnr-location"></i>
+                        {complete_address}
+                    </li>
+                        <li class="dcuser-screen">
+                        <i class="lnr lnr-screen"></i>
+                        <span><a href="{company_website}" target="_blank" data-wpel-link="external" rel="external noopener noreferrer">{company_website}</a></span>
+                    </li>                        
+                    </ul>
+    </div>
+        
+    </aside>
+    </div>
+    </div>
+    </div>
+    </div><!-- /wp:html -->"""
+
+    if html_template == 1:
+        final_content = html_1
+    elif html_template == 2:
+        final_content = html_2
+    elif html_template == 3:
+        final_content = html_3
+        
+
+
+    # Data for creating a new user with the 'author' role
+    new_user_data = {
+        'username': new_username,
+        'email': user_email,
+        'password': user_password,
+        'roles': ['author']  # Set the role to 'author'
+    }
+
+    # Send the request to create a new user
+    print("USER", new_username)
+    print("mail", user_email)
+    print("PASS:", user_password)
+
+
+
+    # Initialize a flag to determine whether we have a valid user ID
+    valid_user_id = False
+    Author_name = "Default"
+
+    # Only attempt to create or fetch a user if all user details are provided
+    if new_username and user_email and user_password:
+
+        new_user_data = {
+            'username': new_username,
+            'email': user_email,
+            'password': user_password,
+            'roles': ['author']  # Assuming the platform supports setting roles via API
+        }
+
+        # Attempt to create a new user
+        user_response = requests.post(json_url + '/users', headers=header, json=new_user_data)
+
+        if user_response.status_code == 201:
+            print('New user created successfully!')
+            new_user_id = user_response.json()['id']
+            valid_user_id = True
+            Author_name = new_username
+        else:
+            print('User already exists. Fetching existing user ID...')
+            user_query_params = {'search': new_username}
+            existing_user_response = requests.get(json_url + '/users', headers=header, params=user_query_params)
+
+            if existing_user_response.status_code == 200 and existing_user_response.json():
+                new_user_id = existing_user_response.json()[0]['id']
+                print('Existing user ID:', new_user_id)
+                valid_user_id = True
+                Author_name = new_username
+            else:
+                print('Failed to fetch existing user. Proceeding without specifying an author.')
+
+    post_data = {
+      'title': company_name,
+      'status': 'publish',
+      'content': final_content
+             }
+    if valid_user_id:
+        post_data['author'] = new_user_id
+
+    # Send the update request (PUT instead of POST)
+    response = requests.put(json_url + f'/posts/{post_id}', headers=header, json=post_data)
+
+    # Handle the response
+    if response.status_code == 200:
+        print("Post updated successfully.")
+        post_link = response.json().get('link')
+        return Author_name, post_link, website, company_website
+    else:
+        print("Failed to update post.")
+        print(response.text)
+        return Author_name, None, website, company_website

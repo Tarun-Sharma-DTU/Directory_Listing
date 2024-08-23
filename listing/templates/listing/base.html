@@ -104,6 +104,9 @@ h2 {
                             <a class="nav-link {% if request.resolver_match.url_name == 'rest_api_test' %}active{% endif %}" href="{% url 'rest_api_test' %}">Rest Api Test</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'post_update' %}active{% endif %}" href="{% url 'post_update' %}">Update Post</a>
+                        </li>   
+                        <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'delete_posts' %}active{% endif %}" href="{% url 'delete_posts' %}">Delete Generated Links</a>
                         </li>                   
                 </ul>

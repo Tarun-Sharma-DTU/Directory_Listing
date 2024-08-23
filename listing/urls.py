@@ -27,6 +27,7 @@ urlpatterns = [
     path('download-excel/', views.download_excel, name='download_excel'),
     path('list-files/', views.list_files, name='list_files'),
     path('download-file/', views.download_file, name='download_file'),
+    path('post-update/', views.post_update_view, name='post_update'),
     path('delete-all-files/', views.delete_all_files, name='delete_all_files'),
     path('flash-posted-website/', views.flash_posted_website, name='flash_posted_website'),
 
