@@ -69,6 +69,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     new_username = row_values[18]
     user_email = row_values[19]
     user_password = row_values[20]
+    schema_code = row_values[21]
 
 
 
@@ -166,7 +167,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
         {social_template_1}
           
 
-        </div><!-- /wp:html -->"""
+        </div> {schema_code}<!-- /wp:html -->"""
     
         
     galleries_2 = ""
@@ -297,10 +298,8 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
             {google_map_src}
         </div>
     </div>
-
     {social_media_buttons} 
-</div>
-<!-- /wp:html -->"""
+</div> {schema_code} <!-- /wp:html -->"""
     
     html_img_tags = ""
     # Split the URLs and remove any leading/trailing whitespace
@@ -467,7 +466,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     </div>
     </div>
     </div>
-    </div><!-- /wp:html -->"""
+    </div> {schema_code} <!-- /wp:html -->"""
 
     if html_template == 1:
         final_content = html_1
