@@ -32,9 +32,6 @@ def convert_to_embed_url(youtube_url):
     else:
         return "Invalid YouTube URL"
 
-
-
-
 @shared_task
 def sample_task():
   print("Test task executed.")
@@ -70,8 +67,17 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     user_email = row_values[19]
     user_password = row_values[20]
     schema_code = row_values[21]
-
-
+    
+    ##Direction Logic
+    
+    if row_values[22] is None or "iframe" not in row_values[22]:
+        map_direction_iframe_1 = '</div>'
+        map_direction_iframe_2 = ""
+        map_direction_iframe_3 = ''
+    else:
+        map_direction_iframe_1 = '<h2>How to Visit Us</h2><div style="display: flex; flex-wrap: wrap; justify-content: center; margin: 0; padding: 0;">' + row_values[22] + '</div></div><style>@media (max-width: 668px) { div { flex-direction: column; } iframe { width: 100%; margin: 3px; } } @media (min-width: 669px) { iframe { width: 47%; margin: 0px; } }</style>'
+        map_direction_iframe_2 = '<h2 class="feature-title">How to Visit Us</h2><div style="display: flex; flex-wrap: wrap; justify-content: center; margin: 0; padding: 0;">' + row_values[22] + '</div><style>@media (max-width: 668px) { div { flex-direction: column; } iframe { width: 100%; margin: 3px; } } @media (min-width: 669px) { iframe { width: 47%; margin: 0px; } }</style>'
+        map_direction_iframe_3 = '<h2>How to Visit Us</h2><div style="display: flex; flex-wrap: wrap; justify-content: center; margin: 0; padding: 0;">' + row_values[22] + '</div><style>@media (max-width: 668px) { div { flex-direction: column; } iframe { width: 100%; margin: 3px; } } @media (min-width: 669px) { iframe { width: 47%; margin: 0px; } }</style>'
 
     print(youtube_url)
     # Processing company hours
@@ -164,10 +170,9 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
             {galleries}
 
          {youtube_template_1}
-        {social_template_1}
-          
+        {social_template_1}         
 
-        </div> {schema_code}<!-- /wp:html -->"""
+        {map_direction_iframe_1} {schema_code}<!-- /wp:html -->"""
     
         
     galleries_2 = ""
@@ -299,7 +304,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
         </div>
     </div>
     {social_media_buttons} 
-</div> {schema_code} <!-- /wp:html -->"""
+</div> {map_direction_iframe_2} {schema_code} <!-- /wp:html -->"""
     
     html_img_tags = ""
     # Split the URLs and remove any leading/trailing whitespace
@@ -466,7 +471,7 @@ def create_company_profile_post(row_values, json_url, website, user, password, h
     </div>
     </div>
     </div>
-    </div> {schema_code} <!-- /wp:html -->"""
+    </div> {map_direction_iframe_3} {schema_code} <!-- /wp:html -->"""
 
     if html_template == 1:
         final_content = html_1
