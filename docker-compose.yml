@@ -1,11 +1,7 @@
-version: '3.8'
-
 services:
   redis:
     image: "redis:alpine"
     command: redis-server --maxmemory 150mb --maxmemory-policy allkeys-lru
-    # ports:
-    #   - "6379:6379"
 
   web:
     build: .
@@ -13,7 +9,7 @@ services:
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
-    environment: # Added for only internal communication
+    environment: 
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
@@ -29,7 +25,7 @@ services:
     depends_on:
       - web
 
-  celery:
+  celery_general:
     build: .
     command: celery -A directory_listing worker --loglevel=info
     volumes:
@@ -38,5 +34,16 @@ services:
       - web
       - redis
 
+  celery_xls:
+    build: .
+    command: celery -A directory_listing worker --loglevel=info --concurrency=1 --queues=xls_queue
+    volumes:
+      - .:/app
+      - temp_volume:/app/tempfiles
+    depends_on:
+      - web
+      - redis
+
 volumes:
   static_volume:
+  temp_volume:
