@@ -689,7 +689,7 @@ def post_update_view(request):
                 row_values = [cell.value for cell in second_row]
             except Exception as e:
                 messages.append({'tags': 'error', 'message': f"Failed to read Excel file: {str(e)}"})
-                return render(request, 'listing/post_update.html', {'messages': messages})
+                return render(request, 'listing/updated_post_update.html', {'messages': messages})
 
             for post_url in post_urls:
                 parsed_url = urlparse(post_url)
@@ -714,6 +714,7 @@ def post_update_view(request):
                 # Append the message to the messages list with appropriate tag
                 messages.append({'tags': status, 'message': message})
 
-        return render(request, 'listing/post_update.html', {'messages': messages})
+        return render(request, 'listing/updated_post_update.html', {'messages': messages})
 
     return render(request, 'listing/post_update.html')
+    

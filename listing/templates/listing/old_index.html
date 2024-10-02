@@ -1,0 +1,294 @@
+{% extends "listing/base.html" %}
+
+{% block title %}Directory Listing Automation{% endblock %}
+
+{% block content %}
+<form id="uploadForm" method="post" action="{% url 'home' %}" enctype="multipart/form-data" class="mb-4">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label for="excel_file" class="form-label">Select an Excel file</label>
+            <input type="file" class="form-control" name="excel_file" id="excel_file">
+        </div>
+        <div class="col-md-3">
+            <label for="site_number" class="form-label">Number Of Sites</label>
+            <input type="number" class="form-control" name="site_number" id="site_number" placeholder="Enter Site Number">
+        </div>
+    </div>
+    <div class="col-md-3 mt-3">
+        <div class="form-check">
+            <input type="checkbox" id="match_root_domain" name="match_root_domain">
+            <label for="match_root_domain">Match Root Domain Only</label>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col">
+            <button type="button" id="startProcess" class="btn btn-primary" style="background-color: #a453ca;">Start Posting</button>
+        </div>
+        <div class="col">
+            <button type="button" id="stopProcess" class="btn btn-danger mt-4">Stop Process</button>
+        </div>
+    </div>
+    <div>
+        <a href="{% url 'download_excel' %}" class="btn btn-success">Download Latest Report</a>
+    </div>
+</form>
+
+<div class="row">
+    <div class="col-md-6 mt-2">
+        <div class="row">
+            <div class="col-md-7 pr-md-1">
+                <select id="fileDropdown" class="form-control">
+                    <option value="">Select a report to download</option>
+                </select>
+            </div>
+            <div class="col-md-2 pl-md-1">
+                <button id="downloadFileButton" class="btn btn-success mb-1 w-115">Download</button>
+            </div>
+            <div class="col-md-3 pl-md-1">
+                <button id="deleteAllFilesButton" class="btn btn-danger mb-1 w-100">Delete All Files</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    let completedTasks = 0
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('startProcess').addEventListener('click', function(event) {
+                event.preventDefault();
+                let siteNumber = document.getElementById('site_number').value;
+                let excelFile = document.getElementById('excel_file').files.length;
+
+                if (excelFile === 0) {
+                    alert('Please upload an Excel file.');
+                    return;
+                }
+
+                if (siteNumber === '' || isNaN(siteNumber) || parseInt(siteNumber) <= 0) {
+                    alert('Please enter a valid site number.');
+                    return;
+                }
+
+                clearTable();
+
+                let form = document.getElementById('uploadForm');
+                let formData = new FormData(form);
+
+                console.log("Form submitted, awaiting task IDs...");
+
+                fetch('{% url "home" %}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {  // Check if the response status is not OK (e.g., 400, 500)
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Server responded with an error.');  // Throw an error with the server's error message
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.task_ids && data.task_ids.length > 0) {
+                        console.log("Received task IDs:", data.task_ids);
+
+                        let taskPromises = data.task_ids.map(taskId => {
+                            return new Promise(resolve => {
+                                checkTaskStatus(taskId, resolve);
+                            });
+                        });
+
+                        Promise.all(taskPromises).then(statuses => {
+                            let completedTasks = statuses.filter(status => status === 'SUCCESS' || status === 'SKIPPED').length;
+                            let failedTasks = statuses.length - completedTasks;
+
+                            if (completedTasks + failedTasks === data.task_ids.length) {
+                                alert("All tasks have been processed, including skipped ones.");
+                                fetchGeneratedLinks();
+                            }
+                        });
+                    } else {
+                        console.error('Form submission did not return task IDs');
+                    }
+                })
+                .catch(error => 
+                alert(error.message));
+            });
+
+            fetchFileList(); // Fetch the list of files when the page loads
+
+            
+            // Add event listeners for download and delete buttons
+            var downloadButton = document.querySelector("#downloadFileButton");
+                if (downloadButton) {
+                    downloadButton.addEventListener("click", downloadFile);
+                } else {
+                    console.error('Download button not found');
+                }
+
+                var deleteButton = document.querySelector("#deleteAllFilesButton");
+                if (deleteButton) {
+                    deleteButton.addEventListener("click", deleteAllFiles);
+                } else {
+                    console.error('Delete button not found');
+                }
+            });
+
+            function fetchFileList() {
+                fetch('/list-files/')
+                    .then(response => response.json())
+                    .then(files => populateDropdown(files))
+                    .catch(error => console.error('Error:', error));
+            }
+
+            function populateDropdown(files) {
+                let dropdown = document.querySelector('#fileDropdown');
+                dropdown.innerHTML = '<option value="">Select a report to download</option>'; // Clear existing options
+                files.forEach(file => {
+                    let option = document.createElement('option');
+                    option.value = file;
+                    option.textContent = file;
+                    dropdown.appendChild(option);
+                });
+            }
+
+            function downloadFile() {
+                let selectedFile = document.querySelector('#fileDropdown').value;
+                if (selectedFile) {
+                    window.location.href = `/download-file/?file=${encodeURIComponent(selectedFile)}`;
+                } else {
+                    alert('Please select a file to download.');
+                }
+            }
+            
+
+            function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+
+            function deleteAllFiles() {
+                    const csrftoken = getCookie('csrftoken');
+
+                    fetch('/delete-all-files/', { 
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrftoken },
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Problem deleting files');
+                        return response.json();
+                    })
+                    .then(() => {
+                        alert('All files have been deleted.');
+                        fetchFileList(); // Refresh the file list
+                    })
+                    .catch(error => alert(error.message));
+                }
+                
+    
+                function checkTaskStatus(taskId, onComplete) {
+                        if (taskId.startsWith('skipped_task_')) {
+                            console.log(`Task ${taskId} is skipped.`);
+                            addLinkToTable({ url: 'N/A', author_name: 'Skipped' }, completedTasks);
+                            completedTasks++;
+                            onComplete('SKIPPED');
+                            return;
+                        }
+
+                        fetch(`/get-task-result/${taskId}/`)
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log(`Received data for task ${taskId}:`, data);
+                                if (data.status === 'SUCCESS') {
+                                    // Ensure we have the author name before calling addLinkToTable
+                                    if (data.author_name) {
+                                        addLinkToTable({ url: data.url, author_name: data.author_name }, completedTasks);
+                                    } else {
+                                        // If author_name is not present, log it and maybe add a placeholder
+                                        console.log(`Author name is missing for task ${taskId}`);
+                                        addLinkToTable({ url: data.url, author_name: 'Unknown' }, completedTasks);
+                                    }
+                                    completedTasks++;
+                                    onComplete(data.status);
+                                } else if (data.status === 'FAILURE' || data.status === 'ERROR') {
+                                    addLinkToTable({ url: 'N/A', author_name: 'Failed/Error' }, completedTasks);
+                                    completedTasks++;
+                                    onComplete(data.status);
+                                } else if (data.status === 'PENDING') {
+                                    setTimeout(() => checkTaskStatus(taskId, onComplete), 2000);
+                                }
+                            })
+                            .catch(error => {
+                                console.error(`Error checking status for task ${taskId}:`, error);
+                                addLinkToTable({ url: 'N/A', author_name: 'Error' }, completedTasks);
+                                completedTasks++;
+                                onComplete('ERROR');
+                            });
+                    }
+            function addLinkToTable(linkData, index) {
+                    let tableBody = document.querySelector('#linksTable tbody');
+                    console.log(`Adding to table:`, linkData, index); // Log to verify the values
+                    // Avoid adding a row if linkData is undefined or contains "N/A"
+                    if (!linkData || linkData.url === "N/A" || typeof index !== 'number') {
+                        return;
+                    }
+
+                    let row = tableBody.insertRow();
+                    let cell1 = row.insertCell(0);
+                    let cell2 = row.insertCell(1);
+                    let cell3 = row.insertCell(2);
+
+                    cell1.innerHTML = index + 1; // This will display the index starting from 1
+                    cell2.innerHTML = `<a href="${linkData.url}" target="_blank">${linkData.url}</a>`;
+                    cell3.innerHTML = linkData.author_name;
+                }        
+                function fetchGeneratedLinks() {
+                    fetch('/get-generated-links-json/')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (Array.isArray(data.links)) {
+                                console.log("Fetched links:", data.links);
+                                let tableBody = document.querySelector('#linksTable tbody');
+                                tableBody.innerHTML = ''; // Clear the table before adding new rows
+                                data.links.forEach((linkData, index) => {
+                                    addLinkToTable(linkData, index);
+                                });
+                            } else {
+                                console.error('Fetched data does not contain a links array:', data);
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
+                                
+        function clearTable() {
+            let tableBody = document.querySelector('#linksTable tbody');
+            tableBody.innerHTML = ''; // Clear the table
+        }
+        
+</script>
+
+        
+        
+    <table id="linksTable" class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Link</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JavaScript will populate table body -->
+        </tbody>
+      </table>
+      
+{% endblock %} 

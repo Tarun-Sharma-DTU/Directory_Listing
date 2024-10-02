@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Rest API Test{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" href="https://www.searchcombat.com/wp-content/uploads/2022/10/favicon_c.png" sizes="192x192">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<style>
+    .navbar .navbar-nav .nav-link {
+    color: #ffffff; /* White color for better contrast */
+    font-weight: bold; /* Bold font for better visibility */
+}
+
+/* For Delete Posts Page */
+.message-container {
+    width: 100%; /* Full width */
+    text-align: center; /* Center text */
+    margin-top: 20px; /* Spacing from top */
+}
+
+.message-container .success, .message-container .info {
+    display: inline-block; /* Only as wide as necessary */
+    padding: 10px 20px; /* Padding inside the message box */
+    margin-bottom: 20px; /* Spacing from bottom */
+    border-radius: 4px; /* Rounded corners */
+    background-color: #fff3cd; /* Background color like in your image */
+    color: #856404; /* Text color like in your image */
+    border: 1px solid #ffeeba; /* Border color like in your image */
+}
+/* End of Deletation process Notification */
+
+#taskStatusContainer {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+    border: 1px solid #e1e1e1;
+    border-radius: 5px;
+    padding: 20px;
+    max-width: 80%;
+    margin: auto;
+    margin-bottom: 60px;
+}
+
+h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.task-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.task-table th,
+.task-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.task-table th {
+    background-color: #f2f2f2;
+}
+
+.task-table tr.success td {
+    background-color: #dff0d8;
+    color: #3c763d;
+}
+
+.task-table tr.failed td {
+    background-color: #f2dede;
+    color: #a94442;
+}
+/* Above is for Delete Posts Page */
+
+
+/* Box shadow for the form */
+
+ .box_section{
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 40px -8px;
+    border-radius: 20px;
+    max-height: fit-content;
+}
+
+
+/* For Upload File Secrion */
+
+.upload-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px;
+}
+
+.upload-box {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    background-color: #fff;
+    transition: border-color 0.3s;
+    cursor: pointer;
+}
+
+.upload-box:hover {
+    border-color: #8a8a8a;
+}
+
+.upload-icon {
+    margin-bottom: 20px;
+}
+
+.upload-icon svg {
+    fill: #7a5fff;
+}
+
+p {
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 0px;
+}
+
+.browse-link {
+    color: #7a5fff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.browse-link:hover {
+    text-decoration: underline;
+}
+
+.supported-formats {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 12px;
+}
+
+.file-info {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #333;
+}
+
+/* Additional Section Styles */
+.additional-settings {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.additional-settings label {
+    display: block;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+#site_number {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: none;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+#site_number:focus {
+    border-color: #7a5fff;
+}
+
+{% comment %} .upload-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    background: linear-gradient(45deg, #6e00ff, #4d00e4);
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.3s;
+} {% endcomment %}
+
+{% comment %} .upload-btn:hover {
+    background: linear-gradient(45deg, #4d00e4, #6e00ff);
+} {% endcomment %}
+
+.progress-section {
+    margin-top: 20px;
+}
+
+#file-name {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    color: #333;
+    outline: none;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    width: 0;
+    background-color: #7a5fff;
+    transition: width 0.3s;
+}
+
+#upload-status {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+/* Uploaded Files Section */
+.uploaded-section {
+    margin-top: 20px;
+}
+
+.uploaded-section h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+#uploaded-files-list {
+    list-style: none;
+    padding: 0;
+}
+
+.uploaded-file {
+    background-color: #e6ffe6;
+    border: 1px solid #00b300;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 5px;
+}
+
+.uploaded-file span {
+    color: #333;
+    font-size: 14px;
+}
+
+.remove-btn {
+    background-color: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #ff6666;
+    padding: 0;
+}
+
+.remove-btn:hover {
+    color: #ff0000;
+}
+
+#process{
+    margin-left: -14px;
+    border-radius: 20px;
+}
+
+
+/* Button CSS */
+.button-22 {
+  align-items: center;
+  appearance: button;
+  background: linear-gradient(to right, #660DBE, #3301DB);
+  border-radius: 8px;
+  border-style: none;
+  box-shadow: rgba(255, 255, 255, 0.26) 0 1px 2px inset;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  font-family: "RM Neue",sans-serif;
+  font-size: 14px;
+  line-height: 1.15;
+  margin: 0;
+  padding: 10px 21px;
+  text-align: center;
+  text-transform: none;
+  transition: color .13s ease-in-out,background .13s ease-in-out,opacity .13s ease-in-out,box-shadow .13s ease-in-out;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.button-22:active {
+  background-color: #006AE8;
+}
+
+.button-22:hover {
+  background-color: #1C84FF;
+}
+
+</style>
+
+</head>
+<body class="container-fluid no-padding" style="margin: 0; padding: 0;">
+    <!-- Navbar with Home, Site Data and Logout -->
+    <nav class="navbar navbar-expand-lg navbar-light mb-4" style="background: linear-gradient(to right, #a453ca, #85D8CE);">
+    <div class="container">
+<a class="navbar-brand" href="">
+    <img src="https://www.searchcombat.com/wp-content/uploads/2022/10/Search-combat-logo-01.png" alt="Search Combat Logo" height="40">
+</a>            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/' %}active{% endif %}" aria-current="page" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'unique_consecutive_domain' %}active{% endif %}" href="{% url 'unique_consecutive_domain' %}">Unique Consecutive Domain</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'site_data' %}active{% endif %}" href="{% url 'site_data' %}">Site Data</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'rest_api_test' %}active{% endif %}" href="{% url 'rest_api_test' %}">Rest Api Test</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'post_update' %}active{% endif %}" href="{% url 'post_update' %}">Update Post</a>
+                        </li>   
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'delete_posts' %}active{% endif %}" href="{% url 'delete_posts' %}">Delete Generated Links</a>
+                        </li>                   
+                </ul>
+                
+                {% else %}
+                <ul class="navbar-nav me-auto">
+                </ul>
+                {% endif %}
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        {% if user.is_authenticated %}
+                            <a class="nav-link btn btn-outline-danger" href="{% url 'logout' %}">Logout</a>
+                        {% else %}
+                        {% endif %}
+                    </li>                    
+                </ul>
+            </div>
+        </div>
+    </nav>
+     <!-- Main content -->
+     <div class="container">
+        {% block content %}
+        <!-- This block will be overridden by child templates -->
+        {% endblock %}
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.6.0/dist/socket.io.min.js"></script>
+    <!-- Bootstrap JS, Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

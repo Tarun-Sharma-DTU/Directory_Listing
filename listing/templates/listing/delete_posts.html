@@ -14,29 +14,57 @@
 </div>
 {% endif %}
 
-<div class="container mt-5">
-    <h2>Upload Excel or Paste Links for Delete</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <!-- File Upload -->
-        <div class="mb-3">
-            <label for="excelFileUpload" class="form-label">Upload Excel File</label>
-            <input class="form-control" type="file" id="excelFileUpload" name="excel_file" accept=".xlsx, .xls">
-        </div>
+<div class="container" style="margin-top:10px;  background:#181F39;">
+    <div class="row">
+        <div class='col-3'></div>
+        <div class='col-9 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+            <h2 class='text-white'>Upload Excel or Paste Links for Delete</h2>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <!-- File Upload -->
+                <div class="mb-3">
+                    <label for="excelFileUpload" class="form-label">Upload Excel File</label>
+                    <input class="form-control" type="file" id="excelFileUpload" name="excel_file" accept=".xlsx, .xls">
+                </div>
 
-        <!-- Placeholder for Links -->
-        <div class="mb-3">
-            <label for="linkPasteArea" class="form-label">Or Paste Links Here</label>
-            <textarea class="form-control" id="linkPasteArea" name="links" rows="10" placeholder="Paste your links here..."></textarea>
-        </div>
+                <!-- Placeholder for Links -->
+                <div class="mb-3">
+                    <label for="linkPasteArea" class="form-label">Or Paste Links Here</label>
+                    <textarea class="form-control" id="linkPasteArea" name="links" rows="10" placeholder="Paste your links here..."></textarea>
+                </div>
 
-        <!-- Submit Button -->
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
+                <!-- Submit Button -->
+                 <div class="row my-3">
+                    <div class="col-5"></div>
+                    <div class="col-6">
+                        <button type="submit" class="upload-btn button-22">Submit</button>
+                    </div>
+            </form>
+        </div>
+    </div>
 </div>
 
+<div class="row my-3">
+    <div class='col-3'></div>
+       <div class='col-9 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+             <h4 class='text-white text-center'>Deletion Task Status</h4>
+             <hr class="hr" />
+             <table id="taskTable" class="task-table">
+                <thead>
+                    <tr>
+                        <th>#</th> <!-- Table header for index numbers -->
+                        <th>URL</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Task statuses will be appended here dynamically -->
+                </tbody>
+        </div>
+    </div>
+</div>
 
-<div id="taskStatusContainer">
+{% comment %} <div id="taskStatusContainer">
     <h2>Deletion Task Status</h2>
     <table id="taskTable" class="task-table">
         <thead>
@@ -50,7 +78,7 @@
             <!-- Task statuses will be appended here dynamically -->
         </tbody>
     </table>
-</div>
+</div> {% endcomment %}
 
 
 <script>

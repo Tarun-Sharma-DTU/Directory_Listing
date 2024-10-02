@@ -5,7 +5,64 @@
 {% block content %}
 
 
-<form id="site_data_Form" enctype="multipart/form-data" method="POST" class="mb-4">
+<div class="container" style="margin-top:10px;  background:#181F39;">
+    <div class="row">
+        <div class='col-2'></div>
+        <div class='col-4 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+            <h5 class="my-2 text-center">Upload Excel File</h5>
+            <form id="site_data_Form" enctype="multipart/form-data" method="POST" class="mb-4">
+                {% csrf_token %}
+                
+                <div class="upload-box" id="upload-box">
+                    <div class="upload-icon">
+                        <img src="https://cdn4.iconfinder.com/data/icons/materia-flat-basic-vol-1/24/009_033_upload_cloud_data_storage-512.png" width="50px" height="50px"/>
+                    </div>
+                    <p>Drag or drop file or <a href="#" class="browse-link" id="browse-link">Browse</a></p>
+                    <span class="supported-formats">Supported formats: Excel, .xlsx</span>
+                    <input type="file" id="site_excel_file" name="excel_file" class="form-control" accept=".xlsx" style="display: none;">
+                </div>
+                
+                
+                <div class="row my-3">
+                    <div class="col-6">
+                        <button class="upload-btn button-22" style="padding:10px 30px;" id="startProcess">Upload Data</button>
+                    </div>
+                    
+
+                    <div class="col-6">
+                        
+                    </div>
+                </div>
+        
+                 <div id="file-info" class="file-info"></div>
+
+            </form>
+
+            <div class="row">
+                <div class="col-6">
+                        
+                </div>
+                <div class="col-6">
+                    <button id="viewData" style="margin-top: -60px;" class="button-22">View All Records</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class='col-1'></div>
+    </div>
+
+    <div class="row my-3">
+        <div class='col-2'></div>
+        <div class='col-9 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+            <div id="dataDisplay"></div>
+        </div>
+    </div>
+</div>
+
+
+
+{% comment %} <form id="site_data_Form" enctype="multipart/form-data" method="POST" class="mb-4">
     {% csrf_token %}
     <div class="row g-3">
         <div class="col-md-4">
@@ -20,10 +77,7 @@
     </div>
 </form>
 
-<button id="viewData" class="btn btn-info">View All Site Records</button>
-
-<!-- Div to display data table -->
-<div id="dataDisplay"></div>
+<button id="viewData" class="btn btn-info">View All Site Records</button> {% endcomment %}
 
 {% if messages %}
     <div class="messages">
@@ -39,26 +93,28 @@
     #dataDisplay table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 20px;
+        border-radius:20px;
+        font-size: 14px;
     }
 
     #dataDisplay th, #dataDisplay td {
-        border: 1px solid #ddd;
+        
         padding: 8px;
     }
 
     #dataDisplay th {
-        background-color: #4CAF50;
+        background-color: ;
         color: white;
         text-align: left;
+        font-size: 16px;
     }
 
     #dataDisplay tr:nth-child(even) {
-        background-color: #f2f2f2;
+        
     }
 
     #dataDisplay tr:hover {
-        background-color: #ddd;
+        
     }
 </style>
 
@@ -85,6 +141,101 @@
                 document.getElementById('dataDisplay').innerHTML = table;
             });
     });
+</script>
+
+<script>
+    // For Upload Section
+    const uploadBox = document.getElementById('upload-box');
+    const fileInput = document.getElementById('site_excel_file');
+    const browseLink = document.getElementById('browse-link');
+    const fileInfo = document.getElementById('file-info');
+    const uploadStatus = document.getElementById('upload-status');
+    const fileNameInput = document.getElementById('file-name');
+    const progressBar = document.querySelector('.progress');
+    let processimg = "https://i.pinimg.com/originals/f5/de/e9/f5dee9eb82760a37400cf4b221d3d774.gif";
+
+    // Trigger file input when clicking on the box or "Browse"
+    uploadBox.addEventListener('click', () => fileInput.click());
+    browseLink.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent default link behavior
+        fileInput.click();
+    });
+
+    // Handle file selection
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            fileInfo.textContent = `Selected file: ${file.name}`;
+        } else {
+            fileInfo.textContent = '';
+        }
+    });
+
+    // Handle drag and drop functionality
+    uploadBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadBox.style.borderColor = '#7a5fff'; // Change border on drag
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+        uploadBox.style.borderColor = '#ccc'; // Reset border on leave
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadBox.style.borderColor = '#ccc'; // Reset border on drop
+        const file = e.dataTransfer.files[0];
+        fileInput.files = e.dataTransfer.files; // Set the dragged file to the input
+        if (file) {
+            fileInfo.textContent = `Selected file: ${file.name}`;
+        }
+    });
+
+    function uploadFile(file, currentIndex, totalFiles) {
+        const fileName = file.name;
+    
+        // Show file name and update status
+        fileNameInput.value = fileName;
+        updateUploadStatus(currentIndex, totalFiles);
+    
+        // Simulate upload progress (You would replace this with actual upload logic)
+        let uploadProgress = 0;
+        const interval = setInterval(() => {
+            if (uploadProgress >= 100) {
+                clearInterval(interval);
+                uploadedFiles++;
+                updateUploadStatus(currentIndex, totalFiles);
+                addToUploadedList(fileName);
+                progressBar.style.width = '0%';
+            } else {
+                uploadProgress += 10;
+                progressBar.style.width = `${uploadProgress}%`;
+            }
+        }, 100);
+    }
+    
+    // Update upload status text
+    function updateUploadStatus(currentIndex, totalFiles) {
+        uploadStatus.textContent = `Uploading - ${currentIndex}/${totalFiles} files`;
+    }
+    
+    // Add uploaded file to the list
+    function addToUploadedList(fileName) {
+        const listItem = document.createElement('li');
+        listItem.classList.add('uploaded-file');
+        
+        listItem.innerHTML = `
+            <span>${fileName}</span>
+            <button class="remove-btn">✖</button>
+        `;
+        uploadedFilesList.appendChild(listItem);
+    
+        // Add remove button functionality
+        listItem.querySelector('.remove-btn').addEventListener('click', () => {
+            uploadedFilesList.removeChild(listItem);
+        });
+    }
+    
 </script>
 
 

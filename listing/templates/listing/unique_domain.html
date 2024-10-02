@@ -3,79 +3,84 @@
 {% block title %}Unique Consecutive Domain{% endblock %}
 
 {% block content %}
-<h2 style="background-color: #e06c6c; font-weight: bold; text-align: center; margin-bottom:25px; padding-bottom:10px; padding-top:10px;">Only Use When Consecutive Unique Domain Needed</h2>
 
-<div id="notificationArea" style="display:none;"></div>
-<div id="statusMessage" style="display:none;"></div>
+<div class="container" style="margin-top:10px;  background:#181F39;">
+    <div class="row">
+        <div class='col-2'></div>
+        <div class='col-4 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+            <h5 class="my-2 text-center">Upload Excel File</h5>
+            <form id="uploadForm" method="post" action="{% url 'unique_consecutive_domain' %}" enctype="multipart/form-data" class="my-4">
+                {% csrf_token %}
+                
+                <div class="upload-box" id="upload-box">
+                    <div class="upload-icon">
+                        <img src="https://cdn4.iconfinder.com/data/icons/materia-flat-basic-vol-1/24/009_033_upload_cloud_data_storage-512.png" width="50px" height="50px"/>
+                    </div>
+                    <p>Drag or drop file or <a href="#" class="browse-link" id="browse-link">Browse</a></p>
+                    <span class="supported-formats">Supported formats: Excel, .xlsx</span>
+                    <input type="file" id="excel_file" name="excel_file" class="form-control" accept=".xlsx" style="display: none;">
+                </div>
+                <div id="file-info" class="file-info"></div>
+                
+                <div class="additional-settings">
+                    <label>
+                        <input type="checkbox" id="match_root_domain"> Match Root Domain Only
+                    </label>
+        
+                    <input type="number" id="site_number" placeholder="Number of Sites">
+                </div>
 
-<form id="uploadForm" method="post" action="{% url 'unique_consecutive_domain' %}" enctype="multipart/form-data" class="my-4">
-    {% csrf_token %}
-    <div class="row g-3">
-        <div class="col-md-3">
-            <label for="excel_file" class="form-label">Select an Excel file</label>
-            <input type="file" class="form-control" name="excel_file" id="excel_file">
+                <div class="row additional-settings">
+                    <div class="col-4">
+                        <button class="upload-btn button-22" style="padding:10px 30px;" id="startProcess">Start</button>
+                    </div>
+                    <div class="col-4">
+                        <button class="upload-btn button-22" style="padding:10px 30px;" id="stopProcess">Stop</button>
+                    </div>
+                    <div class="col-4">
+                        <button class="upload-btn button-22" style="padding:10px 27px;" onclick="confirmFlash()">Flash</button>
+                    </div>
+                </div>
+        
+                <div id="file-info" class="file-info"></div>
+            </form>
+
         </div>
-        <div class="col-md-3">
-            <label for="site_number" class="form-label">Number Of Sites</label>
-            <input type="number" class="form-control" name="site_number" id="site_number" placeholder="Enter Site Number">
+
+        <div class='col-1'></div>
+
+        <div class='col-4 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+    
+        <select id="fileDropdown" class="form-control my-4">
+            <option value="">Select a report to download</option>
+        </select>    
+
+        <div class="row additional-settings">
+            <div class="col-4"></div>
+            <div class="col-4"><button id="downloadFileButton" class="upload-btn button-22">Download</button></div>
+        </div>
+        <hr class="hr" />
+    </div>
+    </div>
+
+    <div class="row my-3">
+        <div class='col-2'></div>
+        <div class='col-9 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+            <table id="linksTable" class="table text-white">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Link</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JavaScript will populate table body -->
+                </tbody>
+            </table>
         </div>
     </div>
-    <div class="col-md-3 mt-3">
-        <div class="form-check">
-            <input type="checkbox" id="match_root_domain" name="match_root_domain">
-            <label for="match_root_domain">Match Root Domain Only</label>
-        </div>
-    </div>
-    <div class="row mt-3">
-        <div class="col">
-            <button type="button" id="startProcess" class="btn btn-primary" style="background-color: #a453ca;">Start Posting</button>
-        </div>
-        <div class="col">
-            <button type="button" id="stopProcess" class="btn btn-danger mt-4">Stop Process</button>
-        </div>
-    </div>
-    <div>
-        <a href="{% url 'download_excel' %}" class="btn btn-success">Download Latest Report</a>
-    </div>
-</form>
-
-{% if messages %}
-    <ul class="messages" style="list-style-type: none; padding: 0; text-align: center;">
-        {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %} style="background-color: #FFDAB9; margin: 10px 0; padding: 10px; display: inline-block; border-radius: 5px;">
-                <h4 style="margin: 0;">{{ message }}</h4>
-            </li>
-        {% endfor %}
-    </ul>
-{% endif %}
-
-
-
-<div style="text-align: center; margin-top: 20px;">
-    <form id="flashForm" action="{% url 'flash_posted_website' %}" method="post" style="display: inline-block; width: 30%;">
-        {% csrf_token %}
-        <button type="button" onclick="confirmFlash()" class="btn btn-warning" style="width: 100%;">Flash Database</button>
-    </form>
 </div>
 
-
-<div class="row mt-3">
-    <div class="col-md-6 mt-2">
-        <div class="row">
-            <div class="col-md-7 pr-md-1">
-                <select id="fileDropdown" class="form-control">
-                    <option value="">Select a report to download</option>
-                </select>
-            </div>
-            <div class="col-md-2 pl-md-1">
-                <button id="downloadFileButton" class="btn btn-success mb-1 w-115">Download</button>
-            </div>
-            <div class="col-md-3 pl-md-1">
-                <button id="deleteAllFilesButton" class="btn btn-danger mb-1 w-100">Delete All Files</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 
 <script>
@@ -326,18 +331,99 @@
     
 </script>
 
+<script>
+    // For Upload Section
+    const uploadBox = document.getElementById('upload-box');
+    const fileInput = document.getElementById('excel_file');
+    const browseLink = document.getElementById('browse-link');
+    const fileInfo = document.getElementById('file-info');
+    const uploadStatus = document.getElementById('upload-status');
+    const fileNameInput = document.getElementById('file-name');
+    const progressBar = document.querySelector('.progress');
+    let processimg = "https://i.pinimg.com/originals/f5/de/e9/f5dee9eb82760a37400cf4b221d3d774.gif";
+
+    // Trigger file input when clicking on the box or "Browse"
+    uploadBox.addEventListener('click', () => fileInput.click());
+    browseLink.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent default link behavior
+        fileInput.click();
+    });
+
+    // Handle file selection
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            fileInfo.textContent = `Selected file: ${file.name}`;
+        } else {
+            fileInfo.textContent = '';
+        }
+    });
+
+    // Handle drag and drop functionality
+    uploadBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadBox.style.borderColor = '#7a5fff'; // Change border on drag
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+        uploadBox.style.borderColor = '#ccc'; // Reset border on leave
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadBox.style.borderColor = '#ccc'; // Reset border on drop
+        const file = e.dataTransfer.files[0];
+        fileInput.files = e.dataTransfer.files; // Set the dragged file to the input
+        if (file) {
+            fileInfo.textContent = `Selected file: ${file.name}`;
+        }
+    });
+
+    function uploadFile(file, currentIndex, totalFiles) {
+        const fileName = file.name;
+    
+        // Show file name and update status
+        fileNameInput.value = fileName;
+        updateUploadStatus(currentIndex, totalFiles);
+    
+        // Simulate upload progress (You would replace this with actual upload logic)
+        let uploadProgress = 0;
+        const interval = setInterval(() => {
+            if (uploadProgress >= 100) {
+                clearInterval(interval);
+                uploadedFiles++;
+                updateUploadStatus(currentIndex, totalFiles);
+                addToUploadedList(fileName);
+                progressBar.style.width = '0%';
+            } else {
+                uploadProgress += 10;
+                progressBar.style.width = `${uploadProgress}%`;
+            }
+        }, 100);
+    }
+    
+    // Update upload status text
+    function updateUploadStatus(currentIndex, totalFiles) {
+        uploadStatus.textContent = `Uploading - ${currentIndex}/${totalFiles} files`;
+    }
+    
+    // Add uploaded file to the list
+    function addToUploadedList(fileName) {
+        const listItem = document.createElement('li');
+        listItem.classList.add('uploaded-file');
         
-        
-    <table id="linksTable" class="table">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Link</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- JavaScript will populate table body -->
-        </tbody>
-      </table>
+        listItem.innerHTML = `
+            <span>${fileName}</span>
+            <button class="remove-btn">✖</button>
+        `;
+        uploadedFilesList.appendChild(listItem);
+    
+        // Add remove button functionality
+        listItem.querySelector('.remove-btn').addEventListener('click', () => {
+            uploadedFilesList.removeChild(listItem);
+        });
+    }
+    
+</script>
       
 {% endblock %} 

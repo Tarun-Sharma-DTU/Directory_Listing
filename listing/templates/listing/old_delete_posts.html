@@ -1,0 +1,103 @@
+{% extends "listing/base.html" %}
+
+{% block title %}Deleting Links{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div class="message-container">
+    {% for message in messages %}
+    <div class="{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="container mt-5">
+    <h2>Upload Excel or Paste Links for Delete</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <!-- File Upload -->
+        <div class="mb-3">
+            <label for="excelFileUpload" class="form-label">Upload Excel File</label>
+            <input class="form-control" type="file" id="excelFileUpload" name="excel_file" accept=".xlsx, .xls">
+        </div>
+
+        <!-- Placeholder for Links -->
+        <div class="mb-3">
+            <label for="linkPasteArea" class="form-label">Or Paste Links Here</label>
+            <textarea class="form-control" id="linkPasteArea" name="links" rows="10" placeholder="Paste your links here..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+
+
+<div id="taskStatusContainer">
+    <h2>Deletion Task Status</h2>
+    <table id="taskTable" class="task-table">
+        <thead>
+            <tr>
+                <th>#</th> <!-- Table header for index numbers -->
+                <th>URL</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Task statuses will be appended here dynamically -->
+        </tbody>
+    </table>
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let intervalId = setInterval(updateTaskStatuses, 8000); // Set up the interval to update task statuses
+
+    function updateTaskStatuses() {
+        fetch('/check_delete_status/')
+            .then(response => response.json())
+            .then(data => {
+                const taskTableBody = document.getElementById('taskTable').getElementsByTagName('tbody')[0];
+                taskTableBody.innerHTML = ''; // Clear the current list
+
+                let allTasksCompleted = true; // Assume all tasks are completed
+
+                data.tasks.forEach((task, index) => {
+                    const row = taskTableBody.insertRow();
+                    const cellIndex = row.insertCell(0);
+                    const cellUrl = row.insertCell(1);
+                    const cellStatus = row.insertCell(2);
+
+                    cellIndex.textContent = index + 1; // Set index number
+                    cellUrl.textContent = task.url; // Set URL
+                    cellStatus.textContent = task.status; // Set status
+
+                    // Add class based on status for styling
+                    row.classList.add(task.status.toLowerCase());
+                    // Debugging line to check each task status
+                    console.log(`Task ${index + 1}: ${task.url} - ${task.status}`);
+
+                    // If any task is not ready, then not all tasks are completed
+                    if (task.status !== 'SUCCESS' && task.status !== 'FAILED') {
+                        allTasksCompleted = false;
+                    }
+                });
+
+                // Removed the block that clears the interval and displays an alert
+            })
+            .catch(error => {
+                console.error('Error fetching task statuses:', error);
+                clearInterval(intervalId); // Clear the interval in case of an error
+            });
+    }
+    updateTaskStatuses(); // Run initially
+});
+
+</script> 
+  
+
+{% endblock %}

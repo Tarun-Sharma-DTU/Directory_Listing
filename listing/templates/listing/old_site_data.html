@@ -1,0 +1,190 @@
+{% extends "listing/base.html" %}
+
+{% block title %}Link Building Automation Dashboard - Site Data {% endblock %}
+
+{% block content %}
+
+
+<form id="site_data_Form" enctype="multipart/form-data" method="POST" class="mb-4">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label for="site_excel_file" class="form-label">Upload your site data</label>
+            <input type="file" class="form-control" name="site_excel_file" id="site_excel_file">
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col">
+            <button type="submit" id="startProcess" class="btn btn-primary" style="background-color: #a453ca;">Upload Data</button>
+        </div>
+    </div>
+</form>
+
+<button id="viewData" class="btn btn-info">View All Site Records</button>
+
+<!-- Div to display data table -->
+<div id="dataDisplay"></div>
+
+{% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <!-- Correct placement of the class attribute -->
+            <h3 class="{% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</h3>
+        {% endfor %}
+    </div>
+{% endif %}
+
+
+<style>
+    #dataDisplay table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    #dataDisplay th, #dataDisplay td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+
+    #dataDisplay th {
+        background-color: #4CAF50;
+        color: white;
+        text-align: left;
+    }
+
+    #dataDisplay tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+
+    #dataDisplay tr:hover {
+        background-color: #ddd;
+    }
+</style>
+
+<script>
+    document.getElementById('site_data_Form').addEventListener('submit', function(event) {
+        var excelFile = document.getElementById('site_excel_file').value;
+        if (!excelFile) {
+            alert('Please select an Excel file to upload.');
+            event.preventDefault(); // Prevent the form submission
+        }
+    });
+
+    document.getElementById('viewData').addEventListener('click', function() {
+        fetch('/api-config-data/')
+            .then(response => response.json())
+            .then(data => {
+                let table = '<table>';
+                table += '<tr><th>SL No.</th><th>Website</th><th>Template No</th></tr>';
+                let slNo = 1; // Initialize serial number counter
+                data.forEach(item => {
+                    table += `<tr><td>${slNo++}</td><td>${item.website}</td><td>${item.template_no}</td></tr>`;
+                });
+                table += '</table>';
+                document.getElementById('dataDisplay').innerHTML = table;
+            });
+    });
+</script>
+
+<script>
+            // For Upload Section
+            const uploadBox = document.getElementById('upload-box');
+            const fileInput = document.getElementById('excel_file');
+            const browseLink = document.getElementById('browse-link');
+            const fileInfo = document.getElementById('file-info');
+            const uploadStatus = document.getElementById('upload-status');
+            const fileNameInput = document.getElementById('file-name');
+            const progressBar = document.querySelector('.progress');
+            let processimg = "https://i.pinimg.com/originals/f5/de/e9/f5dee9eb82760a37400cf4b221d3d774.gif";
+
+            // Trigger file input when clicking on the box or "Browse"
+            uploadBox.addEventListener('click', () => fileInput.click());
+            browseLink.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent default link behavior
+                fileInput.click();
+            });
+
+            // Handle file selection
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                if (file) {
+                    fileInfo.textContent = `Selected file: ${file.name}`;
+                } else {
+                    fileInfo.textContent = '';
+                }
+            });
+
+            // Handle drag and drop functionality
+            uploadBox.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadBox.style.borderColor = '#7a5fff'; // Change border on drag
+            });
+
+            uploadBox.addEventListener('dragleave', () => {
+                uploadBox.style.borderColor = '#ccc'; // Reset border on leave
+            });
+
+            uploadBox.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadBox.style.borderColor = '#ccc'; // Reset border on drop
+                const file = e.dataTransfer.files[0];
+                fileInput.files = e.dataTransfer.files; // Set the dragged file to the input
+                if (file) {
+                    fileInfo.textContent = `Selected file: ${file.name}`;
+                }
+            });
+
+            function uploadFile(file, currentIndex, totalFiles) {
+                const fileName = file.name;
+            
+                // Show file name and update status
+                fileNameInput.value = fileName;
+                updateUploadStatus(currentIndex, totalFiles);
+            
+                // Simulate upload progress (You would replace this with actual upload logic)
+                let uploadProgress = 0;
+                const interval = setInterval(() => {
+                    if (uploadProgress >= 100) {
+                        clearInterval(interval);
+                        uploadedFiles++;
+                        updateUploadStatus(currentIndex, totalFiles);
+                        addToUploadedList(fileName);
+                        progressBar.style.width = '0%';
+                    } else {
+                        uploadProgress += 10;
+                        progressBar.style.width = `${uploadProgress}%`;
+                    }
+                }, 100);
+            }
+            
+            // Update upload status text
+            function updateUploadStatus(currentIndex, totalFiles) {
+                uploadStatus.textContent = `Uploading - ${currentIndex}/${totalFiles} files`;
+            }
+            
+            // Add uploaded file to the list
+            function addToUploadedList(fileName) {
+                const listItem = document.createElement('li');
+                listItem.classList.add('uploaded-file');
+                
+                listItem.innerHTML = `
+                    <span>${fileName}</span>
+                    <button class="remove-btn">✖</button>
+                `;
+                uploadedFilesList.appendChild(listItem);
+            
+                // Add remove button functionality
+                listItem.querySelector('.remove-btn').addEventListener('click', () => {
+                    uploadedFilesList.removeChild(listItem);
+                });
+            }
+            
+        </script>
+
+
+{% endblock %} 
+
+
+
+

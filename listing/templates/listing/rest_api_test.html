@@ -3,7 +3,74 @@
 {% block title %}Directory Listing Automation{% endblock %}
 
 {% block content %}
-<div class="container my-4">
+
+<div class="container" style="margin-top:10px;  background:#181F39;">
+        <div class="row">
+            <div class='col-2'></div>
+            <div class='col-4 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+                <h4 class="mb-3 my-3 text-center">WordPress Rest API Testing</h4>
+                <hr class="hr" />
+                <form method="post" action="{% url 'rest_api_test' %}" class="row g-3 align-items-center">
+                    {% csrf_token %}
+                    <div class="row my-3">
+                        <div class="col-1"></div>
+                    <div class="col-auto">
+                        <label for="site-dropdown" class="col-form-label">Select a site:</label>
+                    </div>
+                    <div class="col-auto">
+                        <select name="api_url" id="site-dropdown" class="form-select">
+                            {% for config in api_configs %}
+                                <option value="{{ config.website }}">{{ config.website }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    </div>
+                    <hr class="hr" />
+
+                    <div class="row my-3 mb-3">
+                        <div class="col-6">
+                            <button type="submit" name="test_single" style="padding:10px 34px;" class="upload-btn button-22">Test Site</button>
+                        </div>
+                        <div class="col-6">
+                            <button type="submit" name="test_all" class="upload-btn button-22">Test All Sites</button>
+                        </div>
+                    </div>
+                </form>
+            </div> 
+
+            <div class='col-1'></div>
+            <div class='col-4 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+                <div class="row">
+                    <div class="col-2"></div>
+                    <div class="col-10">
+                        <a href="{% url 'download_failed_tests' %}"><button id="viewData" class="upload-btn button-22 my-4">Download Failed Sites List</button></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row my-3">
+            <div class='col-2'></div>
+            <div class='col-9 my-3' style="background:#1E2746; border-radius:20px; border-color: #181f39; box-shadow: rgb(205 199 199 / 35%) 0px 5px 15px;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                      <tr>
+                        <th style=" text-align: left; padding: 8px;">SL No.</th>
+                        <th style=" text-align: left; padding: 8px;">Site Name</th>
+                        <th style=" text-align: left; padding: 8px;">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="test-status">
+                      <!-- Content will be populated by JavaScript -->
+                    </tbody>
+                    
+                  </table>
+            </div>
+        </div>
+    </div>
+
+
+{% comment %} <div class="container my-4">
     <h2 class="mb-4">WordPress Rest API Testing</h2>
     <form method="post" action="{% url 'rest_api_test' %}" class="row g-3 align-items-center">
         {% csrf_token %}
@@ -27,10 +94,10 @@
     <div>
         <a href="{% url 'download_failed_tests' %}" class="btn btn-success">Download Failed Sites List</a>
     </div>
-</div>
+</div> {% endcomment %}
 
 <!-- Table for displaying test results -->
-<table style="width:100%; border-collapse: collapse;">
+{% comment %} <table style="width:100%; border-collapse: collapse;">
     <thead>
       <tr>
         <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">SL No.</th>
@@ -41,7 +108,7 @@
     <tbody id="test-status">
       <!-- Content will be populated by JavaScript -->
     </tbody>
-  </table>
+  </table> {% endcomment %}
 
   <script>
     function updateTestStatus() {
